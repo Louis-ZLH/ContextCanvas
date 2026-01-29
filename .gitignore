@@ -1,0 +1,38 @@
+# --- OS & IDE (系统和编辑器垃圾文件) ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.log
+
+# --- Deploy & Secrets (部署和敏感信息) ---
+.env
+.env.*
+!.env.example
+docker-compose.override.yml
+# 如果你有 SSL 证书，千万别提交
+*.pem
+*.key
+
+# --- Backend (Go) ---
+/backend/vendor/
+/backend/bin/
+/backend/dist/
+/backend/*.exe
+/backend/*.test
+/backend/coverage.txt
+
+# --- Frontend (Node.js/React) ---
+/frontend/node_modules/
+/frontend/dist/
+/frontend/build/
+/frontend/.npm/
+/frontend/*.local
+
+# --- AI Service (Python) ---
+/ai-service/__pycache__/
+/ai-service/*.py[cod]
+/ai-service/venv/
+/ai-service/.venv/
+/ai-service/env/
