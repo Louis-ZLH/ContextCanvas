@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # 1. 数据库 MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: cg-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root  # 密码暂时设为 root
+      MYSQL_DATABASE: context_graph
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+
+  # 2. 缓存 Redis
+  redis:
+    image: redis:latest
+    container_name: cg-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # 3. 消息队列 RabbitMQ (带管理界面)
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: cg-rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"  # 核心协议端口
+      - "15672:15672" # 管理后台端口 (访问 http://localhost:15672)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  # 4. 对象存储 MinIO
+  minio:
+    image: minio/minio
+    container_name: cg-minio
+    restart: always
+    ports:
+      - "9000:9000" # API 端口
+      - "9001:9001" # Web 管理后台端口
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    # 这一行很重要：启动 Server 并指定控制台地址
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+# 定义数据卷 (让数据持久化，重启容器数据不丢)
+volumes:
+  mysql_data:
+  redis_data:
+  rabbitmq_data:
+  minio_data:
