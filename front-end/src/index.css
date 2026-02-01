@@ -1,0 +1,249 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+/* ============ Theme Variables ============ */
+
+/* 1. Modern SaaS (default) */
+:root,
+[data-theme="saas"] {
+  --bg-app: #ffffff;
+  --bg-sidebar: #f9fafb;
+  --bg-header: #ffffff;
+  --bg-canvas: #f3f4f6;
+  --border-main: #e5e7eb;
+
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --accent: #2563eb;
+  --accent-light: #eff6ff;
+
+  --node-bg: #ffffff;
+  --node-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+  --bubble-user: #2563eb;
+  --bubble-user-text: #ffffff;
+  --bubble-ai: #f3f4f6;
+  --bubble-ai-text: #111827;
+
+  --edge-stroke: #6b7280;
+  --edge-opacity: 0.4;
+  --edge-width: 2;
+  --edge-dasharray: none;
+}
+
+/* 2. Cyber Dark */
+[data-theme="cyber"] {
+  --bg-app: #0b1120;
+  --bg-sidebar: #020617;
+  --bg-header: rgba(15, 23, 42, 0.8);
+  --bg-canvas: #0b1120;
+  --border-main: #1e293b;
+
+  --text-primary: #e2e8f0;
+  --text-secondary: #64748b;
+  --accent: #10b981;
+  --accent-light: rgba(16, 185, 129, 0.1);
+
+  --node-bg: #1e293b;
+  --node-shadow: 0 0 0 1px #334155, 0 0 15px rgba(16, 185, 129, 0.1);
+
+  --bubble-user: #10b981;
+  --bubble-user-text: #064e3b;
+  --bubble-ai: #0f172a;
+  --bubble-ai-text: #e2e8f0;
+
+  --edge-stroke: #10b981;
+  --edge-opacity: 0.6;
+  --edge-width: 2;
+  --edge-dasharray: none;
+}
+
+/* 3. Paper Note */
+[data-theme="paper"] {
+  --bg-app: #fdfbf7;
+  --bg-sidebar: #f5f4f1;
+  --bg-header: #fdfbf7;
+  --bg-canvas: #f0efe9;
+  --border-main: #d1d5db;
+
+  --text-primary: #292524;
+  --text-secondary: #78716c;
+  --accent: #ea580c;
+  --accent-light: #ffedd5;
+
+  --node-bg: #ffffff;
+  --node-shadow: 4px 4px 0px rgba(41, 37, 36, 0.15);
+
+  --bubble-user: #292524;
+  --bubble-user-text: #fafaf9;
+  --bubble-ai: #f5f5f4;
+  --bubble-ai-text: #292524;
+
+  --edge-stroke: #292524;
+  --edge-opacity: 1;
+  --edge-width: 1.5;
+  --edge-dasharray: 5 5;
+}
+
+/* ============ Base Styles ============ */
+
+body {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+[data-theme="cyber"] body,
+[data-theme="cyber"] {
+  font-family: "Fira Code", "Menlo", monospace;
+}
+
+[data-theme="paper"] body,
+[data-theme="paper"] {
+  font-family: "Georgia", "Cambria", "Times New Roman", serif;
+}
+
+/* ============ Transitions ============ */
+* {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* ============ Node Card ============ */
+.node-card {
+  background-color: var(--node-bg);
+  box-shadow: var(--node-shadow);
+  border: 1px solid var(--border-main);
+}
+
+/* ============ Source Node ============ */
+.source-node {
+  background-color: var(--node-bg);
+  box-shadow: var(--node-shadow);
+  border: 1px solid var(--border-main);
+}
+
+.source-header {
+  border-left: 3px solid var(--accent);
+}
+
+.source-tag {
+  background-color: var(--accent-light);
+  color: var(--accent);
+}
+
+.source-highlight {
+  background-color: var(--accent-light);
+  border-left: 2px solid var(--accent);
+}
+
+.source-meta-icon {
+  color: var(--accent);
+}
+
+/* ============ Handle Styles ============ */
+.custom-handle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.custom-handle:hover {
+  transform: scale(1.4);
+}
+
+.custom-handle-source {
+  background-color: var(--accent);
+  cursor: crosshair;
+}
+
+.custom-handle-source:hover {
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.custom-handle-target {
+  background-color: #9ca3af;
+  cursor: cell;
+}
+
+.custom-handle-target:hover {
+  box-shadow: 0 0 6px #9ca3af;
+}
+
+/* ============ Scrollbar ============ */
+.no-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+/* ============ Bubble ============ */
+.bubble-user {
+  background-color: var(--bubble-user);
+  color: var(--bubble-user-text);
+}
+
+.bubble-ai {
+  background-color: var(--bubble-ai);
+  color: var(--bubble-ai-text);
+}
+
+/* ============ Accent ============ */
+.text-accent {
+  color: var(--accent);
+}
+
+.bg-accent {
+  background-color: var(--accent);
+}
+
+.bg-accent-light {
+  background-color: var(--accent-light);
+}
+
+/* ============ Theme Semantic Classes ============ */
+.bg-app {
+  background-color: var(--bg-app);
+}
+
+.bg-sidebar {
+  background-color: var(--bg-sidebar);
+}
+
+.bg-header {
+  background-color: var(--bg-header);
+}
+
+.bg-canvas {
+  background-color: var(--bg-canvas);
+}
+
+.border-main {
+  border-color: var(--border-main);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.node-bg {
+  background-color: var(--node-bg);
+}
+
+.ModernScroller {
+  scrollbar-color: #cccccc transparent;
+}
+
+.CyberScroller {
+  scrollbar-color: #1a202bff transparent;
+}

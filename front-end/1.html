@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContextGraph: Full Layout</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        serif: ['Georgia', 'Cambria', 'Times New Roman', 'serif'],
+                        mono: ['Fira Code', 'Menlo', 'monospace'],
+                    },
+                    colors: {
+                        darkbg: '#0B1120',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 基础动画 */
+        * { transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease; }
+        
+        /* 滚动条隐藏但可滚动 */
+        .no-scrollbar::-webkit-scrollbar { width: 0px; background: transparent; }
+        
+        /* ---------------- 主题变量定义 ---------------- */
+
+        /* 1. Modern SaaS (生产力工具风格) */
+        .theme-saas {
+            --bg-app: #FFFFFF;
+            --bg-sidebar: #F9FAFB; /* Gray 50 */
+            --bg-header: #FFFFFF;
+            --bg-canvas: #F3F4F6;
+            --border-main: #E5E7EB; /* Gray 200 */
+            
+            --text-primary: #111827;
+            --text-secondary: #6B7280;
+            --accent: #2563EB; /* Blue 600 */
+            --accent-light: #EFF6FF; /* Blue 50 */
+            
+            --node-bg: #FFFFFF;
+            --node-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --bubble-user: #2563EB;
+            --bubble-user-text: #FFFFFF;
+            --bubble-ai: #F3F4F6;
+        }
+
+        /* 2. Cyber Dark (黑客/IDE风格) */
+        .theme-cyber {
+            --bg-app: #0B1120;
+            --bg-sidebar: #020617; /* Slate 950 */
+            --bg-header: rgba(15, 23, 42, 0.8); /* Slate 900 Glass */
+            --bg-canvas: #0B1120;
+            --border-main: #1E293B; /* Slate 800 */
+            
+            --text-primary: #E2E8F0;
+            --text-secondary: #64748B;
+            --accent: #10B981; /* Emerald 500 */
+            --accent-light: rgba(16, 185, 129, 0.1);
+            
+            --node-bg: #1E293B;
+            --node-shadow: 0 0 0 1px #334155, 0 0 15px rgba(16, 185, 129, 0.1);
+            --bubble-user: #10B981;
+            --bubble-user-text: #064E3B;
+            --bubble-ai: #0F172A;
+        }
+
+        /* 3. Paper Note (知识库风格) */
+        .theme-paper {
+            --bg-app: #FDFBF7;
+            --bg-sidebar: #F5F4F1;
+            --bg-header: #FDFBF7;
+            --bg-canvas: #F0EFE9;
+            --border-main: #D1D5DB;
+            
+            --text-primary: #292524;
+            --text-secondary: #78716C;
+            --accent: #EA580C; /* Orange 600 */
+            --accent-light: #FFEDD5;
+            
+            --node-bg: #FFFFFF;
+            --node-shadow: 4px 4px 0px rgba(41, 37, 36, 0.15); /* Hard shadow */
+            --bubble-user: #292524;
+            --bubble-user-text: #FAFAF9;
+            --bubble-ai: #F5F5F4;
+        }
+
+        /* 类名应用 */
+        body { background-color: var(--bg-app); color: var(--text-primary); }
+        .app-border { border-color: var(--border-main); }
+        .bg-sidebar { background-color: var(--bg-sidebar); }
+        .bg-header { background-color: var(--bg-header); }
+        .bg-canvas { background-color: var(--bg-canvas); }
+        .text-sec { color: var(--text-secondary); }
+        
+        .nav-item:hover { background-color: var(--border-main); }
+        .nav-item.active { background-color: var(--accent-light); color: var(--accent); font-weight: 500; }
+        .nav-item.active i { color: var(--accent); }
+
+        .btn-primary { background-color: var(--accent); color: white; }
+        .btn-primary:hover { opacity: 0.9; }
+
+        .node-card { background-color: var(--node-bg); box-shadow: var(--node-shadow); border: 1px solid var(--border-main); }
+
+        /* Source Node 样式 */
+        .source-node { background-color: var(--node-bg); box-shadow: var(--node-shadow); border: 1px solid var(--border-main); }
+        .source-node .source-header { border-left: 3px solid var(--accent); }
+        .source-node .source-tag { background-color: var(--accent-light); color: var(--accent); }
+        .source-node .source-highlight { background-color: var(--accent-light); border-left: 2px solid var(--accent); }
+        .source-node .source-meta-icon { color: var(--accent); }
+
+        /* 模拟 React Flow Edge */
+        .edge-path { stroke: var(--text-secondary); stroke-width: 2; fill: none; opacity: 0.4; }
+        .theme-cyber .edge-path { stroke: var(--accent); opacity: 0.6; }
+        .theme-paper .edge-path { stroke: var(--text-primary); stroke-width: 1.5; stroke-dasharray: 5,5; opacity: 1; }
+
+        /* Handle 样式 */
+        .handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+            z-index: 20;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .handle:hover {
+            transform: scale(1.4);
+        }
+        .handle-source {
+            background-color: var(--accent);
+            cursor: crosshair;
+        }
+        .handle-source:hover {
+            box-shadow: 0 0 6px var(--accent);
+        }
+        .handle-target {
+            background-color: #9CA3AF;
+            cursor: cell;
+        }
+        .handle-target:hover {
+            box-shadow: 0 0 6px #9CA3AF;
+        }
+
+    </style>
+</head>
+<body class="theme-saas h-screen flex overflow-hidden font-sans text-sm">
+
+    <aside class="w-64 flex flex-col border-r app-border bg-sidebar z-20 transition-all duration-300" id="sidebar">
+        <div class="h-14 flex items-center px-4 border-b app-border">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style="background-color: var(--accent);">
+                <i class="fas fa-project-diagram text-white"></i>
+            </div>
+            <span class="font-bold text-lg tracking-tight">ContextGraph</span>
+        </div>
+
+        <div class="flex-1 overflow-y-auto py-4 px-2 space-y-6">
+            
+            <div>
+                <div class="px-2 mb-2 text-xs font-semibold uppercase tracking-wider text-sec">Workspace</div>
+                <div class="space-y-0.5">
+                    <a href="#" class="nav-item active flex items-center px-3 py-2 rounded-md transition-colors gap-3">
+                        <i class="fas fa-layer-group w-4 text-center text-sec transition-colors"></i>
+                        <span>All Graphs</span>
+                    </a>
+                    <a href="#" class="nav-item flex items-center px-3 py-2 rounded-md transition-colors gap-3">
+                        <i class="fas fa-clock w-4 text-center text-sec transition-colors"></i>
+                        <span>Recent</span>
+                    </a>
+                    <a href="#" class="nav-item flex items-center px-3 py-2 rounded-md transition-colors gap-3">
+                        <i class="fas fa-star w-4 text-center text-sec transition-colors"></i>
+                        <span>Favorites</span>
+                    </a>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between px-2 mb-2">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-sec">Knowledge Base</div>
+                    <button class="text-sec hover:text-current"><i class="fas fa-plus text-xs"></i></button>
+                </div>
+                <div class="space-y-0.5">
+                    <a href="#" class="nav-item flex items-center px-3 py-2 rounded-md transition-colors gap-3">
+                        <i class="fas fa-book w-4 text-center text-sec transition-colors"></i>
+                        <span>React Docs.pdf</span>
+                    </a>
+                    <a href="#" class="nav-item flex items-center px-3 py-2 rounded-md transition-colors gap-3">
+                        <i class="fas fa-database w-4 text-center text-sec transition-colors"></i>
+                        <span>Backend API</span>
+                    </a>
+                    <a href="#" class="nav-item flex items-center px-3 py-2 rounded-md transition-colors gap-3">
+                        <i class="fas fa-file-code w-4 text-center text-sec transition-colors"></i>
+                        <span>Prompts V1</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t app-border">
+            <div class="flex items-center gap-3 p-2 rounded-md hover:bg-black/5 cursor-pointer transition">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-400 to-purple-500"></div>
+                <div class="flex-1 overflow-hidden">
+                    <p class="font-medium truncate">User Developer</p>
+                    <p class="text-xs text-sec truncate">Pro Plan</p>
+                </div>
+                <i class="fas fa-cog text-sec"></i>
+            </div>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col relative min-w-0">
+        
+        <header class="h-14 border-b app-border bg-header flex items-center justify-between px-4 z-10 backdrop-blur-sm">
+            
+            <div class="flex items-center gap-4">
+                <button class="md:hidden text-sec"><i class="fas fa-bars"></i></button>
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2 text-sec text-xs">
+                        <span>Workspace</span>
+                        <i class="fas fa-chevron-right text-[10px]"></i>
+                        <span>Frontend Learning</span>
+                    </div>
+                    <h1 class="font-semibold leading-tight flex items-center gap-2">
+                        React Flow Architecture
+                        <i class="fas fa-pen text-xs text-sec opacity-50 hover:opacity-100 cursor-pointer"></i>
+                    </h1>
+                </div>
+            </div>
+
+            <div class="hidden md:flex items-center absolute left-1/2 transform -translate-x-1/2 bg-transparent border app-border rounded-lg p-1">
+                <button class="px-3 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-slate-800 shadow-sm transition">
+                    GPT-4o
+                </button>
+                <button class="px-3 py-1 rounded text-xs font-medium text-sec hover:text-current transition">
+                    Claude 3.5
+                </button>
+                <button class="px-3 py-1 rounded text-xs font-medium text-sec hover:text-current transition">
+                    Gemini Pro
+                </button>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="h-6 w-px bg-gray-300 dark:bg-slate-700 mx-1"></div>
+                
+                <div class="flex bg-gray-100 dark:bg-slate-800 rounded-md p-0.5 border app-border">
+                    <button onclick="setTheme('theme-saas')" title="SaaS Theme" class="w-7 h-7 flex items-center justify-center rounded hover:bg-white dark:hover:bg-slate-700 shadow-sm transition">
+                        <i class="fas fa-sun text-xs"></i>
+                    </button>
+                    <button onclick="setTheme('theme-cyber')" title="Cyber Theme" class="w-7 h-7 flex items-center justify-center rounded hover:bg-white dark:hover:bg-slate-700 transition">
+                        <i class="fas fa-terminal text-xs"></i>
+                    </button>
+                    <button onclick="setTheme('theme-paper')" title="Paper Theme" class="w-7 h-7 flex items-center justify-center rounded hover:bg-white dark:hover:bg-slate-700 transition">
+                        <i class="fas fa-scroll text-xs"></i>
+                    </button>
+                </div>
+
+                <button class="btn-primary px-3 py-1.5 rounded-md text-xs font-medium shadow-sm flex items-center gap-2">
+                    <i class="fas fa-share-alt"></i> Share
+                </button>
+            </div>
+        </header>
+
+        <main class="flex-1 relative overflow-hidden bg-canvas cursor-grab active:cursor-grabbing custom-grid">
+            
+            <div class="absolute inset-0 opacity-10 pointer-events-none" 
+                 style="background-image: radial-gradient(var(--text-secondary) 1px, transparent 1px); background-size: 20px 20px;">
+            </div>
+
+            <svg class="absolute inset-0 w-full h-full pointer-events-none z-0">
+                <!-- ChatNode1 source(right) -> ChatNode2 target(left) -->
+                <path class="edge-path" d="M 450 110 C 535 110, 535 280, 620 280" marker-end="url(#arrowhead)"/>
+                <!-- SourceNode source(right) -> ChatNode1 target(left) -->
+                <path class="edge-path" d="M 400 640 C 550 640, -50 110, 100 110" marker-end="url(#arrowhead)" style="stroke-dasharray: 4,4;"/>
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" style="fill: var(--text-secondary);" />
+                    </marker>
+                </defs>
+            </svg>
+
+            <div class="absolute top-[80px] left-[100px] w-[350px] h-[450px] node-card rounded-xl flex flex-col z-10 group">
+                <div class="h-10 border-b app-border flex items-center justify-between px-3 cursor-move bg-opacity-50">
+                    <span class="text-xs font-bold text-sec uppercase tracking-wider">Start: React Basics</span>
+                    <i class="fas fa-expand text-xs text-sec hover:text-current cursor-pointer"></i>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                    <div class="flex justify-end">
+                        <div class="max-w-[85%] p-2.5 rounded-2xl rounded-tr-sm text-sm" style="background-color: var(--bubble-user); color: var(--bubble-user-text)">
+                            React Flow 的核心概念是什么？
+                        </div>
+                    </div>
+                    <div class="flex justify-start">
+                        <div class="max-w-[85%] p-2.5 rounded-2xl rounded-tl-sm text-sm leading-relaxed" style="background-color: var(--bubble-ai);">
+                            核心概念主要是 <b>Nodes</b>（节点）、<b>Edges</b>（连线）和 <b>Handles</b>（句柄）。它是基于状态驱动的。
+                        </div>
+                    </div>
+                </div>
+                <div class="p-3 border-t app-border bg-opacity-50">
+                    <div class="flex items-center gap-2 p-2 rounded border app-border bg-white dark:bg-black/20">
+                        <i class="fas fa-plus-circle text-sec cursor-pointer"></i>
+                        <input type="text" placeholder="Reply..." class="flex-1 bg-transparent text-sm outline-none nodrag text-primary">
+                        <i class="fas fa-arrow-up cursor-pointer" style="color: var(--accent)"></i>
+                    </div>
+                </div>
+                <!-- Target handle (left, upper) -->
+                <div class="handle handle-target left-[-6px] top-[30px]" title="Target"></div>
+                <!-- Source handle (right, upper) -->
+                <div class="handle handle-source right-[-6px] top-[30px]" title="Source"></div>
+            </div>
+
+            <div class="absolute top-[250px] left-[620px] w-[350px] h-[450px] node-card rounded-xl flex flex-col z-10">
+                 <div class="h-10 border-b app-border flex items-center justify-between px-3 cursor-move bg-opacity-50">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-code-branch text-xs text-sec"></i>
+                        <span class="text-xs font-bold text-sec uppercase tracking-wider">Branch: Custom Node</span>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                    <div class="text-[10px] text-center text-sec mb-2">--- Context Inherited ---</div>
+                    <div class="flex justify-end">
+                        <div class="max-w-[85%] p-2.5 rounded-2xl rounded-tr-sm text-sm" style="background-color: var(--bubble-user); color: var(--bubble-user-text)">
+                            那怎么自定义一个带有输入框的 Node？
+                        </div>
+                    </div>
+                    <div class="flex justify-start">
+                        <div class="max-w-[85%] p-2.5 rounded-2xl rounded-tl-sm text-sm leading-relaxed" style="background-color: var(--bubble-ai);">
+                            你需要注册 <code>nodeTypes</code>，并在自定义组件中使用 HTML 的 <code>input</code> 标签，同时记得添加 <code>nodrag</code> 类名。
+                        </div>
+                    </div>
+                </div>
+                <div class="p-3 border-t app-border bg-opacity-50">
+                    <div class="flex items-center gap-2 p-2 rounded border app-border bg-white dark:bg-black/20">
+                        <i class="fas fa-plus-circle text-sec cursor-pointer"></i>
+                        <input type="text" placeholder="Reply..." class="flex-1 bg-transparent text-sm outline-none nodrag text-primary">
+                        <i class="fas fa-arrow-up cursor-pointer" style="color: var(--accent)"></i>
+                    </div>
+                </div>
+                <!-- Target handle (left, upper) -->
+                <div class="handle handle-target left-[-6px] top-[30px]" title="Target"></div>
+                <!-- Source handle (right, upper) -->
+                <div class="handle handle-source right-[-6px] top-[30px]" title="Source"></div>
+            </div>
+
+            <!-- Source Node -->
+            <div class="absolute top-[620px] left-[80px] w-[320px] source-node rounded-xl flex flex-col z-10 group">
+                <!-- Header -->
+                <div class="source-header h-10 border-b app-border flex items-center justify-between px-3 cursor-move rounded-t-xl">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-file-alt text-xs source-meta-icon"></i>
+                        <span class="text-xs font-bold uppercase tracking-wider text-sec">Source</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="source-tag text-[10px] font-semibold px-1.5 py-0.5 rounded">PDF</span>
+                        <i class="fas fa-ellipsis-v text-xs text-sec hover:text-current cursor-pointer"></i>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="p-4 space-y-3">
+                    <!-- File info -->
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-12 rounded-md flex items-center justify-center flex-shrink-0" style="background-color: var(--accent-light);">
+                            <i class="fas fa-file-pdf text-lg source-meta-icon"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-sm truncate">React Flow Documentation</p>
+                            <p class="text-xs text-sec mt-0.5">react-flow-docs-v11.pdf</p>
+                            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-sec">
+                                <span class="flex items-center gap-1"><i class="fas fa-weight-hanging"></i> 2.4 MB</span>
+                                <span class="flex items-center gap-1"><i class="fas fa-copy"></i> 48 pages</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Highlighted excerpt -->
+                    <div class="source-highlight rounded-md p-2.5 text-xs leading-relaxed">
+                        <p class="italic">"A node in React Flow is a React component. It can be as simple as a div or as complex as an interactive chart..."</p>
+                        <p class="text-[10px] text-sec mt-1.5 not-italic">— Page 12, Section 3.1</p>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="source-tag text-[10px] px-2 py-0.5 rounded-full font-medium">#react-flow</span>
+                        <span class="source-tag text-[10px] px-2 py-0.5 rounded-full font-medium">#nodes</span>
+                        <span class="source-tag text-[10px] px-2 py-0.5 rounded-full font-medium">#custom</span>
+                    </div>
+
+                    <!-- Footer meta -->
+                    <div class="flex items-center justify-between text-[11px] text-sec pt-1 border-t app-border">
+                        <span class="flex items-center gap-1"><i class="fas fa-clock"></i> Added 2 days ago</span>
+                        <span class="flex items-center gap-1"><i class="fas fa-link"></i> 2 references</span>
+                    </div>
+                </div>
+
+                <!-- Source handle (right, only one) -->
+                <div class="handle handle-source right-[-6px] top-[20px]" title="Source"></div>
+            </div>
+
+            <div class="absolute bottom-6 right-6 flex flex-col gap-2">
+                <button class="w-8 h-8 rounded bg-white dark:bg-slate-800 border app-border shadow-sm flex items-center justify-center hover:text-blue-600 transition">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="w-8 h-8 rounded bg-white dark:bg-slate-800 border app-border shadow-sm flex items-center justify-center hover:text-blue-600 transition">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button class="w-8 h-8 rounded bg-white dark:bg-slate-800 border app-border shadow-sm flex items-center justify-center hover:text-blue-600 transition">
+                    <i class="fas fa-compress-arrows-alt"></i>
+                </button>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        function setTheme(themeName) {
+            document.body.className = themeName + " h-screen flex overflow-hidden font-sans text-sm";
+            
+            // 字体调整
+            if(themeName === 'theme-paper') {
+                document.body.classList.replace('font-sans', 'font-serif');
+            } else if (themeName === 'theme-cyber') {
+                document.body.classList.replace('font-serif', 'font-mono');
+            } else {
+                document.body.classList.replace('font-serif', 'font-sans');
+                document.body.classList.replace('font-mono', 'font-sans');
+            }
+        }
+    </script>
+</body>
+</html>

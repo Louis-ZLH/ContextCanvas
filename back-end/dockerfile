@@ -1,0 +1,40 @@
+# --- 第一阶段：构建 (Builder) ---
+FROM golang:alpine AS builder
+
+# 设置环境变量，开启 Go Modules，并配置国内代理（构建速度更快）
+ENV GO111MODULE=on
+
+WORKDIR /app
+
+# 1. 先拷贝依赖定义文件（利用 Docker 缓存机制）
+COPY go.mod go.sum ./
+RUN go mod download
+
+# 2. 拷贝所有源代码
+COPY . .
+
+# 3. 编译 Go 程序
+# 注意：这里假设你的 main.go 入口在 cmd/server 或 cmd/api 下
+# 如果你的 main.go 直接在 cmd 文件夹里，请把 ./cmd/server 改为 ./cmd
+RUN CGO_ENABLED=0 GOOS=linux go build -o my-server ./cmd/server
+
+# --- 第二阶段：运行 (Runner) ---
+FROM alpine:latest
+
+# 安装基础证书（防止调用 HTTPS 外部接口报错）和时区数据
+RUN apk --no-cache add ca-certificates tzdata
+
+WORKDIR /root/
+
+# 1. 从构建阶段把编译好的二进制文件拿过来
+COPY --from=builder /app/my-server .
+
+# 2. 关键：把 config 配置文件也拿过来
+# 假设你的程序读取的是当前目录下的 config/config.yaml
+COPY --from=builder /app/config ./config
+
+# 暴露后端端口（根据你 config 里的配置修改，Gin 默认通常是 8080）
+EXPOSE 8080
+
+# 启动命令
+CMD ["./my-server"]

@@ -55,6 +55,38 @@ services:
     volumes:
       - minio_data:/data
 
+  # front-end:
+  #   build: 
+  #     context: ../front-end # 指向 front-end 目录
+  #     dockerfile: Dockerfile
+  #   container_name: front-end
+  #   ports:
+  #     - "80:80" # 浏览器访问的端口
+  #   depends_on:
+  #     - back-end # 确保后端先启动
+
+  back-end:
+    build: 
+      context: ../back-end  # 指向后端代码所在的文件夹
+      dockerfile: Dockerfile
+    container_name: back-end
+    restart: always
+    ports:
+      - "8080:8080"  # 宿主机端口:容器端口
+    depends_on:
+      - mysql        # 确保数据库先启动
+      - redis        # 确保 Redis 先启动
+    # 如果你的 Go 代码支持读取环境变量来覆盖 config，可以在这里配置
+    # 如果不支持，你需要修改 config.yaml 里的 host 为服务名
+    environment:
+      APP_ENV: dev # 示例环境变量
+      HTTP_ADDR: :8080
+      MYSQL_DSN: root:root@tcp(mysql:3306)/context_graph?charset=utf8mb4&parseTime=True&loc=Local
+      REDIS_ADDR: redis:6379
+      RABBITMQ_ADDR: rabbitmq:5672
+      REDIS_PASSWORD: ""
+
+
 # 定义数据卷 (让数据持久化，重启容器数据不丢)
 volumes:
   mysql_data:
