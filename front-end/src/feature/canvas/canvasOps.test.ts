@@ -23,7 +23,7 @@ const CHAT_NODE_ID = "chat-1";
 /* ── tests ── */
 
 describe("computeParentDelta", () => {
-  it("delta 为空 → 两个数组均为空", () => {
+  it("empty delta → both arrays are empty", () => {
     const nodes = [makeNode(CHAT_NODE_ID, "chatNode")];
     const delta = emptyDelta();
 
@@ -33,7 +33,7 @@ describe("computeParentDelta", () => {
     expect(result.deletedParentNodeIds).toEqual([]);
   });
 
-  it("新增了一条指向当前 chatNode 的 edge → newParentNodes 包含对应节点", () => {
+  it("added an edge pointing to current chatNode → newParentNodes contains the corresponding node", () => {
     const parentNode = makeNode("res-1");
     const nodes = [makeNode(CHAT_NODE_ID, "chatNode"), parentNode];
     const delta: GraphDelta = {
@@ -47,7 +47,7 @@ describe("computeParentDelta", () => {
     expect(result.deletedParentNodeIds).toEqual([]);
   });
 
-  it("删除了一条指向当前 chatNode 的 edge → deletedParentNodeIds 包含对应 source ID", () => {
+  it("deleted an edge pointing to current chatNode → deletedParentNodeIds contains the corresponding source ID", () => {
     const nodes = [makeNode(CHAT_NODE_ID, "chatNode")];
     const delta: GraphDelta = {
       ...emptyDelta(),
@@ -60,7 +60,7 @@ describe("computeParentDelta", () => {
     expect(result.deletedParentNodeIds).toEqual(["res-1"]);
   });
 
-  it("新增了节点 + edge（全新 parent）→ newParentNodes 包含完整节点数据", () => {
+  it("added node + edge (new parent) → newParentNodes contains complete node data", () => {
     const newParent = makeNode("res-new");
     // 新节点已被 applyOps 加入 state.nodes
     const nodes = [makeNode(CHAT_NODE_ID, "chatNode"), newParent];
@@ -76,7 +76,7 @@ describe("computeParentDelta", () => {
     expect(result.deletedParentNodeIds).toEqual([]);
   });
 
-  it("删除了一个父节点（node + edge 一起删除，级联 deletedEdges 自动覆盖）", () => {
+  it("deleted a parent node (node + edge deleted together, cascade covers deletedEdges)", () => {
     // 节点被删后，级联已将关联 edge 放入 deletedEdges
     const nodes = [makeNode(CHAT_NODE_ID, "chatNode")];
     const delta: GraphDelta = {
@@ -91,7 +91,7 @@ describe("computeParentDelta", () => {
     expect(result.deletedParentNodeIds).toEqual(["res-del"]);
   });
 
-  it("混合操作 → 两个数组均正确", () => {
+  it("mixed operations → both arrays are correct", () => {
     const newParent = makeNode("res-add");
     const nodes = [makeNode(CHAT_NODE_ID, "chatNode"), newParent];
     const delta: GraphDelta = {
@@ -106,7 +106,7 @@ describe("computeParentDelta", () => {
     expect(result.deletedParentNodeIds).toEqual(["res-rm"]);
   });
 
-  it("不相关的 edge 变更不影响结果", () => {
+  it("unrelated edge changes do not affect the result", () => {
     const nodes = [
       makeNode(CHAT_NODE_ID, "chatNode"),
       makeNode("chat-2", "chatNode"),

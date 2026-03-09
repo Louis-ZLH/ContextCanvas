@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -30,12 +32,20 @@ type Config struct {
 
 	// AI Service 配置
 	AIServiceURL string
+
+	// SMTP 配置
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFromName string
 }
 
 func Load() *Config {
-	// 你也可以换成 viper / envconfig，这里用最朴素的方式
+	// 本地开发时从 .env 加载，生产环境中 .env 不存在则静默跳过
+	_ = godotenv.Load()
 
-	machineID , err := strconv.ParseInt(getEnv("MACHINE_ID", "0"), 10, 64)
+	machineID, err := strconv.ParseInt(getEnv("MACHINE_ID", "0"), 10, 64)
 	if err != nil {
 		panic(err)
 	}
@@ -63,6 +73,13 @@ func Load() *Config {
 		RabbitMQURL: getEnv("RABBITMQ_URL", "amqp://guest:guest@127.0.0.1:5672/"),
 
 		AIServiceURL: getEnv("AI_SERVICE_URL", "http://localhost:8001"),
+
+		// SMTP 配置
+		SMTPHost:     getEnv("SMTP_HOST", "smtp.gmail.com"),
+		SMTPPort:     getEnv("SMTP_PORT", "587"),
+		SMTPUser:     getEnv("SMTP_USER", ""),
+		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+		SMTPFromName: getEnv("SMTP_FROM_NAME", "ContextGraph"),
 	}
 
 	cfg.RedisDB = 0

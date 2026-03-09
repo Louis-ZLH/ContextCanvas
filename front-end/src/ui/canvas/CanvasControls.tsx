@@ -70,7 +70,7 @@ export const CanvasControls = memo(function CanvasControls({ onLayout, onAddNode
             draggable
             onDragStart={(e) => onDragStart(e, "chatNode")}
             onClick={() => onAddNode("chatNode")}
-            title="拖拽到画布放置，或点击在中心创建"
+            title="Drag to canvas to place, or click to create at center"
           >
             <MessageSquarePlus size={14} />
             Chat
@@ -92,7 +92,7 @@ export const CanvasControls = memo(function CanvasControls({ onLayout, onAddNode
           <button
             className={btnClass + " flex items-center gap-1.5"}
             onClick={() => fileInputRef.current?.click()}
-            title="上传文件并创建 Resource 节点"
+            title="Upload file and create resource node"
           >
             <FileUp size={14} />
             Upload

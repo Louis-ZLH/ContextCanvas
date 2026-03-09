@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
-import { Search, SearchX, FileQuestion, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Search, SearchX, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { searchCanvasQueryOptions } from "../../query/canvas";
 import type { CanvasSearchItem } from "../../service/type";
 

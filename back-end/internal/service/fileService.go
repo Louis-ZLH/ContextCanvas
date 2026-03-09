@@ -100,45 +100,45 @@ func NewFileService(repo FileRepo) *FileService {
 func (s *FileService) UploadFile(ctx context.Context, userID int64, fileHeader *multipart.FileHeader) (int64, error) {
 	// 1. 验证文件大小
 	if fileHeader.Size > maxFileSize {
-		return 0, apperr.BadRequest("文件大小超过限制（最大 5MB）")
+		return 0, apperr.BadRequest("File size exceeds limit (max 5MB)")
 	}
 	if fileHeader.Size == 0 {
-		return 0, apperr.BadRequest("文件不能为空")
+		return 0, apperr.BadRequest("File cannot be empty")
 	}
 
 	// 2. 拒绝旧版 Office 格式
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 	if legacyOfficeExtensions[ext] {
-		return 0, apperr.BadRequest("不支持旧版 Office 格式（.doc/.xls/.ppt），请转换为新版格式（.docx/.xlsx/.pptx）后重新上传")
+		return 0, apperr.BadRequest("Legacy Office formats (.doc/.xls/.ppt) are not supported. Please convert to .docx/.xlsx/.pptx and re-upload")
 	}
 
 	// 3. 验证文件扩展名
 	if ext == "" || !allowedExtensions[ext] {
-		return 0, apperr.BadRequest("不支持的文件类型")
+		return 0, apperr.BadRequest("Unsupported file type")
 	}
 
 	// 4. 验证 Content-Type（同时拒绝旧版 Office MIME type）
 	contentType := fileHeader.Header.Get("Content-Type")
 	if legacyOfficeMIMETypes[strings.ToLower(contentType)] {
-		return 0, apperr.BadRequest("不支持旧版 Office 格式（.doc/.xls/.ppt），请转换为新版格式（.docx/.xlsx/.pptx）后重新上传")
+		return 0, apperr.BadRequest("Legacy Office formats (.doc/.xls/.ppt) are not supported. Please convert to .docx/.xlsx/.pptx and re-upload")
 	}
 	if !isAllowedMIME(contentType) {
-		return 0, apperr.BadRequest("不支持的文件 MIME 类型")
+		return 0, apperr.BadRequest("Unsupported file MIME type")
 	}
 
 	// 5. 校验用户存储配额
 	used, err := s.repo.GetUserStorageUsed(ctx, userID)
 	if err != nil {
-		return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "查询存储用量失败")
+		return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to query storage usage")
 	}
 	if used+fileHeader.Size > maxStoragePerUser {
-		return 0, apperr.BadRequest("存储空间不足，免费用户最多上传 200MB 文件")
+		return 0, apperr.BadRequest("Insufficient storage. Free users can upload up to 200MB")
 	}
 
 	// 6. 打开文件
 	file, err := fileHeader.Open()
 	if err != nil {
-		return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "无法读取上传文件")
+		return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to read uploaded file")
 	}
 	defer file.Close()
 
@@ -154,55 +154,55 @@ func (s *FileService) UploadFile(ctx context.Context, userID int64, fileHeader *
 		// PDF：校验页数 ≤ 3
 		pageCount, err := pdfcpuapi.PageCount(file, nil)
 		if err != nil {
-			return 0, apperr.BadRequest("无法解析 PDF 文件")
+			return 0, apperr.BadRequest("Failed to parse PDF file")
 		}
 		if pageCount > maxPDFPages {
-			return 0, apperr.BadRequest(fmt.Sprintf("PDF 页数超过限制（最多 %d 页，当前 %d 页）", maxPDFPages, pageCount))
+			return 0, apperr.BadRequest(fmt.Sprintf("PDF page count exceeds limit (max %d pages, current %d pages)", maxPDFPages, pageCount))
 		}
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "文件处理失败")
+			return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "File processing failed")
 		}
 
 	case isPPTContentType(contentType):
 		// PPTX：校验页数 ≤ 5（通过 ZIP 结构计数 slide 数量）
 		slideCount, err := countPPTXSlides(file, fileHeader.Size)
 		if err == nil && slideCount > maxPPTSlides {
-			return 0, apperr.BadRequest(fmt.Sprintf("PPT 页数超过限制（最多 %d 页，当前 %d 页）", maxPPTSlides, slideCount))
+			return 0, apperr.BadRequest(fmt.Sprintf("PPT slide count exceeds limit (max %d slides, current %d slides)", maxPPTSlides, slideCount))
 		}
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "文件处理失败")
+			return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "File processing failed")
 		}
 
 	case isDocxContentType(contentType):
 		// DOCX：通过 ZIP 读取 word/document.xml 估算文本量
 		xmlSize, err := estimateZipEntrySize(file, fileHeader.Size, "word/document.xml")
 		if err != nil {
-			return 0, apperr.BadRequest("无法解析 DOCX 文件")
+			return 0, apperr.BadRequest("Failed to parse DOCX file")
 		}
 		if xmlSize > maxTextFileSize {
-			return 0, apperr.BadRequest("DOCX 文件文本内容过大（最大 50KB）")
+			return 0, apperr.BadRequest("DOCX text content too large (max 50KB)")
 		}
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "文件处理失败")
+			return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "File processing failed")
 		}
 
 	case isXlsxContentType(contentType):
 		// XLSX：通过 ZIP 读取 xl/sharedStrings.xml 估算文本量
 		xmlSize, err := estimateZipEntrySize(file, fileHeader.Size, "xl/sharedStrings.xml")
 		if err != nil {
-			return 0, apperr.BadRequest("无法解析 XLSX 文件")
+			return 0, apperr.BadRequest("Failed to parse XLSX file")
 		}
 		if xmlSize > maxTextFileSize {
-			return 0, apperr.BadRequest("XLSX 文件文本内容过大（最大 50KB）")
+			return 0, apperr.BadRequest("XLSX text content too large (max 50KB)")
 		}
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "文件处理失败")
+			return 0, apperr.Wrap(err, 500, apperr.BizUnknown, "File processing failed")
 		}
 
 	case isTextContentType(contentType):
 		// 文本类文件：校验大小 ≤ 50KB
 		if fileHeader.Size > maxTextFileSize {
-			return 0, apperr.BadRequest("文本文件内容过大（最大 50KB）")
+			return 0, apperr.BadRequest("Text file content too large (max 50KB)")
 		}
 
 	case isCompressibleImage(contentType):
@@ -254,7 +254,7 @@ func (s *FileService) GetFileInfo(ctx context.Context, userID int64, fileID int6
 		return nil, err
 	}
 	if file.UserID != userID {
-		return nil, apperr.Forbidden("无权访问该文件")
+		return nil, apperr.Forbidden("No permission to access this file")
 	}
 	return file, nil
 }
@@ -266,7 +266,7 @@ func (s *FileService) DownloadFile(ctx context.Context, userID int64, fileID int
 		return nil, nil, err
 	}
 	if file.UserID != userID {
-		return nil, nil, apperr.Forbidden("无权访问该文件")
+		return nil, nil, apperr.Forbidden("No permission to access this file")
 	}
 
 	obj, err := s.repo.GetFileFromMinio(ctx, file.MinioPath)
@@ -291,7 +291,7 @@ func (s *FileService) DeleteFile(ctx context.Context, userID int64, fileID int64
 	}
 	// 2. 验证所有权
 	if file.UserID != userID {
-		return apperr.Forbidden("无权删除该文件")
+		return apperr.Forbidden("No permission to delete this file")
 	}
 	// 3. 数据库事务：解绑节点 + 软删除
 	if err := s.repo.DeleteFileByID(ctx, fileID); err != nil {
@@ -312,7 +312,7 @@ func (s *FileService) BindFileToNode(ctx context.Context, userID int64, fileID i
 		return err
 	}
 	if file.UserID != userID {
-		return apperr.Forbidden("无权操作该文件")
+		return apperr.Forbidden("No permission to operate on this file")
 	}
 
 	// 2. 验证节点存在且用户拥有其所属画布
@@ -321,7 +321,7 @@ func (s *FileService) BindFileToNode(ctx context.Context, userID int64, fileID i
 		return err
 	}
 	if canvasUserID != userID {
-		return apperr.Forbidden("无权操作该节点")
+		return apperr.Forbidden("No permission to operate on this node")
 	}
 
 	// 3. 更新节点的 file_id
@@ -332,7 +332,7 @@ func (s *FileService) BindFileToNode(ctx context.Context, userID int64, fileID i
 func (s *FileService) GetStorageUsage(ctx context.Context, userID int64) (int64, int64, error) {
 	used, err := s.repo.GetUserStorageUsed(ctx, userID)
 	if err != nil {
-		return 0, 0, apperr.Wrap(err, 500, apperr.BizUnknown, "查询存储用量失败")
+		return 0, 0, apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to query storage usage")
 	}
 	return used, maxStoragePerUser, nil
 }
@@ -341,7 +341,7 @@ func (s *FileService) GetStorageUsage(ctx context.Context, userID int64) (int64,
 func compressImage(r io.Reader) ([]byte, error) {
 	img, _, err := image.Decode(r)
 	if err != nil {
-		return nil, apperr.BadRequest("无法解析图片文件")
+		return nil, apperr.BadRequest("Failed to parse image file")
 	}
 
 	bounds := img.Bounds()
@@ -358,7 +358,7 @@ func compressImage(r io.Reader) ([]byte, error) {
 
 	var buf bytes.Buffer
 	if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: jpegQuality}); err != nil {
-		return nil, apperr.Wrap(err, 500, apperr.BizUnknown, "图片压缩失败")
+		return nil, apperr.Wrap(err, 500, apperr.BizUnknown, "Image compression failed")
 	}
 
 	return buf.Bytes(), nil

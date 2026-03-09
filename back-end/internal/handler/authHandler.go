@@ -150,7 +150,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			c.JSON(appErr.Code, dto.Error(appErr.BizCode, appErr.Message))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.Error(apperr.BizUnknown, "服务器错误"))
+		c.JSON(http.StatusInternalServerError, dto.Error(apperr.BizUnknown, "Internal server error"))
 		return
 	}
 

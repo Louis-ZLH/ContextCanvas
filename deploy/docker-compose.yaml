@@ -7,10 +7,10 @@ services:
     container_name: cg-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root  # 密码暂时设为 root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: context_graph
-    ports:
-      - "3306:3306"
+    expose:
+      - "3306"
     volumes:
       - mysql_data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password
@@ -20,8 +20,8 @@ services:
     image: redis:latest
     container_name: cg-redis
     restart: always
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
       - redis_data:/data
 
@@ -30,12 +30,12 @@ services:
     image: rabbitmq:3-management
     container_name: cg-rabbitmq
     restart: always
-    ports:
-      - "5672:5672"  # 核心协议端口
-      - "15672:15672" # 管理后台端口 (访问 http://localhost:15672)
+    expose:
+      - "5672"
+      - "15672"
     environment:
-      RABBITMQ_DEFAULT_USER: superAdmin
-      RABBITMQ_DEFAULT_PASS: Zlh1024@
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
@@ -44,26 +44,15 @@ services:
     image: minio/minio
     container_name: cg-minio
     restart: always
-    ports:
-      - "9000:9000" # API 端口
-      - "9001:9001" # Web 管理后台端口
+    expose:
+      - "9000"
+      - "9001"
     environment:
-      MINIO_ROOT_USER: admin
-      MINIO_ROOT_PASSWORD: password123
-    # 这一行很重要：启动 Server 并指定控制台地址
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
-
-  # front-end:
-  #   build: 
-  #     context: ../front-end # 指向 front-end 目录
-  #     dockerfile: Dockerfile
-  #   container_name: front-end
-  #   ports:
-  #     - "80:80" # 浏览器访问的端口
-  #   depends_on:
-  #     - back-end # 确保后端先启动
 
   # 5. AI Service (Python FastAPI)
   ai-service:
@@ -72,47 +61,136 @@ services:
       dockerfile: Dockerfile
     container_name: cg-ai-service
     restart: always
-    ports:
-      - "8001:8001"
+    expose:
+      - "8001"
     depends_on:
+      - redis
       - minio
       - rabbitmq
     environment:
+      # MinIO
       MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: admin
-      MINIO_SECRET_KEY: password123
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: context-graph
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-xxx}
+      # Redis
+      REDIS_URL: redis://redis:6379/0
+      # RabbitMQ
+      RABBITMQ_URL: ${RABBITMQ_URL_HEARTBEAT}
+      # LLM API Keys
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
+      CLAUDE_BASE_URL: ${CLAUDE_BASE_URL:-https://api.anthropic.com/v1}
+      # Tool APIs
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      JINA_API_KEY: ${JINA_API_KEY:-}
 
-  back-end:
+  # 6. Back-End 实例 1 (Go Gin)
+  back-end-1:
     build:
-      context: ../back-end  # 指向后端代码所在的文件夹
-      dockerfile: Dockerfile
-    container_name: back-end
+      context: ../back-end
+      dockerfile: dockerfile
+    container_name: cg-back-end-1
     restart: always
-    ports:
-      - "8080:8080"  # 宿主机端口:容器端口
+    expose:
+      - "8080"
     depends_on:
-      - mysql        # 确保数据库先启动
-      - redis        # 确保 Redis 先启动
-      - rabbitmq     # 确保 RabbitMQ 先启动
-      - ai-service   # 确保 AI 服务先启动
+      - mysql
+      - redis
+      - rabbitmq
+      - minio
+      - ai-service
     environment:
       APP_ENV: dev
       HTTP_ADDR: :8080
-      MYSQL_DSN: root:root@tcp(mysql:3306)/context_graph?charset=utf8mb4&parseTime=True&loc=Local
+      MACHINE_ID: "1"
+      MYSQL_DSN: root:${MYSQL_ROOT_PASSWORD}@tcp(mysql:3306)/context_graph?charset=utf8mb4&parseTime=True&loc=Local
       REDIS_ADDR: redis:6379
       REDIS_PASSWORD: ""
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RABBITMQ_URL: ${RABBITMQ_URL}
       AI_SERVICE_URL: http://ai-service:8001
       MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: context-graph
+      JWT_SECRET: ${JWT_SECRET}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-ContextCanvas}
 
+  # 7. Back-End 实例 2 (Go Gin)
+  back-end-2:
+    build:
+      context: ../back-end
+      dockerfile: dockerfile
+    container_name: cg-back-end-2
+    restart: always
+    expose:
+      - "8080"
+    depends_on:
+      - mysql
+      - redis
+      - rabbitmq
+      - minio
+      - ai-service
+    environment:
+      APP_ENV: dev
+      HTTP_ADDR: :8080
+      MACHINE_ID: "2"
+      MYSQL_DSN: root:${MYSQL_ROOT_PASSWORD}@tcp(mysql:3306)/context_graph?charset=utf8mb4&parseTime=True&loc=Local
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ""
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      AI_SERVICE_URL: http://ai-service:8001
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: context-graph
+      JWT_SECRET: ${JWT_SECRET}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-ContextCanvas}
 
-# 定义数据卷 (让数据持久化，重启容器数据不丢)
+  # 8. Front-End (Nginx + React SPA + TLS)
+  front-end:
+    build:
+      context: ../front-end
+      dockerfile: dockerfile
+    container_name: cg-front-end
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - certbot_www:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    depends_on:
+      - back-end-1
+      - back-end-2
+
+  # 9. Certbot (Let's Encrypt 自动续签)
+  certbot:
+    image: certbot/certbot
+    container_name: cg-certbot
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    # 每 12 小时检查一次续签
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
+
+# 数据卷持久化
 volumes:
   mysql_data:
   redis_data:
   rabbitmq_data:
   minio_data:
+  certbot_www:
+  certbot_certs:

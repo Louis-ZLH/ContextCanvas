@@ -384,7 +384,7 @@ func (s *ConversationService) SendMessage(
 		eventCh <- dto.SSEEvent{
 			Type: "error",
 			Data: dto.ErrorData{
-				Message:   "AI 服务响应超时，请稍后重试",
+				Message:   "AI service response timed out, please try again later",
 				MessageID: msgIDStr,
 			},
 		}
@@ -584,7 +584,7 @@ func (s *ConversationService) RetryMessage(
 		eventCh <- dto.SSEEvent{
 			Type: "error",
 			Data: dto.ErrorData{
-				Message:   "AI 服务响应超时，请稍后重试",
+				Message:   "AI service response timed out, please try again later",
 				MessageID: msgIDStr,
 			},
 		}
@@ -648,7 +648,7 @@ func (s *ConversationService) assembleContext(
 
 	// 检查组装超时
 	if assemblyCtx.Err() != nil {
-		return nil, nil, 0, fmt.Errorf("上下文组装超时，请稍后重试")
+		return nil, nil, 0, fmt.Errorf("Context assembly timed out, please try again later")
 	}
 	if parentErr != nil {
 		return nil, nil, 0, parentErr
@@ -658,11 +658,11 @@ func (s *ConversationService) assembleContext(
 	if len(parentBlocks) > 0 {
 		parentBlocks = append(parentBlocks, infra.ContentBlock{
 			Type: "text",
-			Text: "以上是本次聊天的前置知识",
+			Text: "The above is the prerequisite knowledge for this chat",
 		})
 		fakeFirstTurn := []infra.ChatMessage{
 			{Role: "user", Content: parentBlocks},
-			{Role: "assistant", Content: "好的，我已了解以上前置知识。"},
+			{Role: "assistant", Content: "OK, I have understood the above prerequisite knowledge."},
 		}
 		chatMessages = append(fakeFirstTurn, chatMessages...)
 	}
@@ -745,7 +745,7 @@ func (s *ConversationService) resolveParentContext(
 				}
 				results[idx].blocks = []infra.ContentBlock{{
 					Type: "text",
-					Text: fmt.Sprintf("[关联对话节点摘要]\n%s", summary),
+					Text: fmt.Sprintf("[Related conversation node summary]\n%s", summary),
 				}}
 
 			case "resourceNode":
@@ -882,7 +882,7 @@ func (s *ConversationService) getConvertedContent(ctx context.Context, file *mod
 	}
 
 	// 3. 全无 → 返回错误
-	return nil, apperr.BadRequest("文件解析异常，请重新上传文件")
+	return nil, apperr.BadRequest("File parsing error, please re-upload the file")
 }
 
 // tryGetSummaryContent 尝试获取文件摘要（Redis 缓存 → MinIO _summary.txt）
@@ -999,7 +999,7 @@ func (s *ConversationService) waitForProcessing(ctx context.Context, fileID int6
 		}
 	}
 
-	return apperr.BadRequest("文件处理超时，请稍后重试")
+	return apperr.BadRequest("File processing timed out, please try again later")
 }
 
 // ========== 辅助函数 ==========
@@ -1120,8 +1120,8 @@ func (s *ConversationService) buildMessageChain(ctx context.Context, conversatio
 	// 5. 如果有可用 summary，构造 fake second turn
 	if usableSummary != "" {
 		fakeSecondTurn := []infra.ChatMessage{
-			{Role: "user", Content: "之前的对话摘要：" + usableSummary},
-			{Role: "assistant", Content: "好的，我已了解之前的对话内容。"},
+			{Role: "user", Content: "Previous conversation summary: " + usableSummary},
+			{Role: "assistant", Content: "OK, I have understood the previous conversation."},
 		}
 		chatMessages = append(fakeSecondTurn, filteredChatMsgs...)
 	} else {
@@ -1618,7 +1618,7 @@ func isOriginalImage(contentType string) bool {
 
 // formatFileTextBlock 格式化文件文本内容块
 func formatFileTextBlock(filename, text string) string {
-	return fmt.Sprintf("[文件: %s]\n---文件内容开始---\n%s\n---文件内容结束---", filename, text)
+	return fmt.Sprintf("[File: %s]\n---File content start---\n%s\n---File content end---", filename, text)
 }
 
 // estimateChatMessage 估算单条 ChatMessage 的 token 数。

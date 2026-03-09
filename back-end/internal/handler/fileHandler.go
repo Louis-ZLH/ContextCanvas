@@ -43,7 +43,7 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(apperr.BizInvalidParams, "请上传文件"))
+		c.JSON(http.StatusBadRequest, dto.Error(apperr.BizInvalidParams, "Please upload a file"))
 		return
 	}
 
@@ -72,7 +72,7 @@ func (h *FileHandler) DownloadFile(c *gin.Context) {
 
 	fileID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(apperr.BizInvalidParams, "无效的文件ID"))
+		c.JSON(http.StatusBadRequest, dto.Error(apperr.BizInvalidParams, "Invalid file ID"))
 		return
 	}
 
@@ -116,7 +116,7 @@ func (h *FileHandler) GetFileInfo(c *gin.Context) {
 
 	fileID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(apperr.BizInvalidParams, "无效的文件ID"))
+		c.JSON(http.StatusBadRequest, dto.Error(apperr.BizInvalidParams, "Invalid file ID"))
 		return
 	}
 
@@ -199,7 +199,7 @@ func (h *FileHandler) DeleteFile(c *gin.Context) {
 
 	fileID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(apperr.BizInvalidParams, "无效的文件ID"))
+		c.JSON(http.StatusBadRequest, dto.Error(apperr.BizInvalidParams, "Invalid file ID"))
 		return
 	}
 
@@ -213,7 +213,7 @@ func (h *FileHandler) DeleteFile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.SuccessMsg("文件已删除"))
+	c.JSON(http.StatusOK, dto.SuccessMsg("File deleted"))
 }
 
 // BindFileToNode POST /file/bind-node — 将文件绑定到节点
@@ -226,7 +226,7 @@ func (h *FileHandler) BindFileToNode(c *gin.Context) {
 
 	var req dto.BindFileToNodeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(apperr.BizInvalidParams, "参数错误"))
+		c.JSON(http.StatusBadRequest, dto.Error(apperr.BizInvalidParams, "Invalid parameters"))
 		return
 	}
 

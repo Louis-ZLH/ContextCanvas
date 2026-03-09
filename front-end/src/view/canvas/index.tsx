@@ -345,7 +345,7 @@ export function LayoutFlowInner() {
       const oldOffice = files.filter((f) => isOldOfficeFormat(f));
       if (oldOffice.length > 0) {
         toast.error(
-          "不支持旧版 Office 格式（.doc/.xls/.ppt），请转换为 .docx/.xlsx/.pptx 后重新上传",
+          "Legacy Office formats (.doc/.xls/.ppt) are not supported. Please convert to .docx/.xlsx/.pptx and re-upload",
         );
       }
       const accepted = files.filter((f) => isFileAccepted(f));
@@ -451,7 +451,7 @@ export function LayoutFlowInner() {
       const oldOffice = files.filter((f) => isOldOfficeFormat(f));
       if (oldOffice.length > 0) {
         toast.error(
-          "不支持旧版 Office 格式（.doc/.xls/.ppt），请转换为 .docx/.xlsx/.pptx 后重新上传",
+          "Legacy Office formats (.doc/.xls/.ppt) are not supported. Please convert to .docx/.xlsx/.pptx and re-upload",
         );
       }
       const accepted = files.filter((f) => isFileAccepted(f));

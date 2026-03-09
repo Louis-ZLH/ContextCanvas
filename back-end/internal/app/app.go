@@ -6,11 +6,13 @@ import (
 	"strings"
 
 	"github.com/luhao/contextGraph/config"
+	"github.com/luhao/contextGraph/internal/consumer"
 	"github.com/luhao/contextGraph/internal/handler"
 	"github.com/luhao/contextGraph/internal/infra"
 	"github.com/luhao/contextGraph/internal/migrate"
 	"github.com/luhao/contextGraph/internal/repo"
 	"github.com/luhao/contextGraph/internal/service"
+	"github.com/luhao/contextGraph/pkg/email"
 	"github.com/luhao/contextGraph/pkg/idgen"
 	"github.com/luhao/contextGraph/pkg/utils"
 	"github.com/minio/minio-go/v7"
@@ -26,7 +28,8 @@ type App struct {
 	MQ    *infra.RabbitMQ
 	AI    *infra.AIClient
 
-	H *Handlers
+	EmailConsumer *consumer.EmailConsumer
+	H             *Handlers
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -100,14 +103,35 @@ func New(cfg *config.Config) (*App, error) {
 	// 9. AI Service Client
 	aiClient := infra.NewAIClient(cfg.AIServiceURL)
 
+	// 10. Email Consumer
+	emailSender := &email.Sender{
+		Host:     cfg.SMTPHost,
+		Port:     cfg.SMTPPort,
+		User:     cfg.SMTPUser,
+		Password: cfg.SMTPPassword,
+		FromName: cfg.SMTPFromName,
+	}
+	emailConsumer := consumer.NewEmailConsumer(mq, emailSender)
+	if err := emailConsumer.Start(); err != nil {
+		mq.Close()
+		if rdb != nil {
+			_ = rdb.Close()
+		}
+		if sqlDB, e := db.DB(); e == nil {
+			_ = sqlDB.Close()
+		}
+		return nil, err
+	}
+
 	return &App{
-		Cfg:   cfg,
-		DB:    db,
-		RDB:   rdb,
-		Minio: minioClient,
-		MQ:    mq,
-		AI:    aiClient,
-		H:     wireHandlers(db, rdb, minioClient, mq, aiClient, cfg),
+		Cfg:           cfg,
+		DB:            db,
+		RDB:           rdb,
+		Minio:         minioClient,
+		MQ:            mq,
+		AI:            aiClient,
+		EmailConsumer: emailConsumer,
+		H:             wireHandlers(db, rdb, minioClient, mq, aiClient, cfg),
 	}, nil
 }
 
@@ -122,7 +146,10 @@ func (a *App) Close(ctx context.Context) error {
 	if a.RDB != nil {
 		_ = a.RDB.Close()
 	}
-	// 关闭 rabbitmq
+	// 先停 consumer 再关 MQ 连接
+	if a.EmailConsumer != nil {
+		a.EmailConsumer.Stop()
+	}
 	if a.MQ != nil {
 		a.MQ.Close()
 	}
@@ -140,7 +167,15 @@ type Handlers struct {
 func wireHandlers(db *gorm.DB, rdb *redis.Client, minioClient *minio.Client, mq *infra.RabbitMQ, aiClient *infra.AIClient, cfg *config.Config) *Handlers {
 	// Auth
 	userRepo := repo.NewUserRepo(db, rdb)
-	authService := service.NewAuthService(userRepo)
+	emailRepo := repo.NewEmailRepo(mq)
+	emailSender := &email.Sender{
+		Host:     cfg.SMTPHost,
+		Port:     cfg.SMTPPort,
+		User:     cfg.SMTPUser,
+		Password: cfg.SMTPPassword,
+		FromName: cfg.SMTPFromName,
+	}
+	authService := service.NewAuthService(userRepo, emailRepo, emailSender)
 	authHandler := handler.NewAuthHandler(authService)
 
 	// User

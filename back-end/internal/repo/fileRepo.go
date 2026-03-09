@@ -44,7 +44,7 @@ func (r *FileRepo) UploadToMinio(ctx context.Context, userID int64, file io.Read
 		ContentType: contentType,
 	})
 	if err != nil {
-		return "", apperr.Wrap(err, 500, apperr.BizUnknown, "文件上传至存储服务失败")
+		return "", apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to upload file to storage service")
 	}
 
 	return objectName, nil
@@ -53,7 +53,7 @@ func (r *FileRepo) UploadToMinio(ctx context.Context, userID int64, file io.Read
 // CreateFileRecord 在数据库中创建文件记录
 func (r *FileRepo) CreateFileRecord(ctx context.Context, fileRecord *model.File) error {
 	if err := r.db.WithContext(ctx).Create(fileRecord).Error; err != nil {
-		return apperr.Wrap(err, 500, apperr.BizUnknown, "保存文件记录失败")
+		return apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to save file record")
 	}
 	return nil
 }
@@ -63,9 +63,9 @@ func (r *FileRepo) GetFileByID(ctx context.Context, fileID int64) (*model.File, 
 	var file model.File
 	if err := r.db.WithContext(ctx).First(&file, fileID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, apperr.NotFound("文件不存在")
+			return nil, apperr.NotFound("File not found")
 		}
-		return nil, apperr.Wrap(err, 500, apperr.BizUnknown, "查询文件记录失败")
+		return nil, apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to query file record")
 	}
 	return &file, nil
 }
@@ -74,7 +74,7 @@ func (r *FileRepo) GetFileByID(ctx context.Context, fileID int64) (*model.File, 
 func (r *FileRepo) GetFileFromMinio(ctx context.Context, minioPath string) (*minio.Object, error) {
 	obj, err := r.minioClient.GetObject(ctx, r.bucket, minioPath, minio.GetObjectOptions{})
 	if err != nil {
-		return nil, apperr.Wrap(err, 500, apperr.BizUnknown, "获取文件失败")
+		return nil, apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to retrieve file")
 	}
 	return obj, nil
 }
@@ -84,9 +84,9 @@ func (r *FileRepo) GetNodeWithCanvasUserID(ctx context.Context, nodeID string) (
 	var node model.Node
 	if err := r.db.WithContext(ctx).First(&node, "id = ?", nodeID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, 0, apperr.NotFound("节点不存在")
+			return nil, 0, apperr.NotFound("Node not found")
 		}
-		return nil, 0, apperr.Wrap(err, 500, apperr.BizUnknown, "查询节点失败")
+		return nil, 0, apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to query node")
 	}
 
 	var canvasUserID int64
@@ -95,7 +95,7 @@ func (r *FileRepo) GetNodeWithCanvasUserID(ctx context.Context, nodeID string) (
 		Where("id = ?", node.CanvasID).
 		Scan(&canvasUserID).Error
 	if err != nil {
-		return nil, 0, apperr.Wrap(err, 500, apperr.BizUnknown, "查询画布信息失败")
+		return nil, 0, apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to query canvas info")
 	}
 
 	return &node, canvasUserID, nil
@@ -105,10 +105,10 @@ func (r *FileRepo) GetNodeWithCanvasUserID(ctx context.Context, nodeID string) (
 func (r *FileRepo) UpdateNodeFileID(ctx context.Context, nodeID string, fileID *int64) error {
 	result := r.db.WithContext(ctx).Model(&model.Node{}).Where("id = ?", nodeID).Update("file_id", fileID)
 	if result.Error != nil {
-		return apperr.Wrap(result.Error, 500, apperr.BizUnknown, "更新节点文件绑定失败")
+		return apperr.Wrap(result.Error, 500, apperr.BizUnknown, "Failed to update node file binding")
 	}
 	if result.RowsAffected == 0 {
-		return apperr.NotFound("节点不存在")
+		return apperr.NotFound("Node not found")
 	}
 	return nil
 }
@@ -141,7 +141,7 @@ func (r *FileRepo) PublishFileConvert(ctx context.Context, fileID int64, minioPa
 	if err != nil {
 		return err
 	}
-	return r.mq.PubChannel.PublishWithContext(ctx,
+	return r.mq.GetPubChannel().PublishWithContext(ctx,
 		"ai_exchange",     // exchange
 		"ai.file.convert", // routing key
 		false,             // mandatory
@@ -226,12 +226,12 @@ func (r *FileRepo) ListFilesByUser(ctx context.Context, userID int64, keyword st
 	}
 
 	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, apperr.Wrap(err, 500, apperr.BizUnknown, "查询文件总数失败")
+		return nil, 0, apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to query file count")
 	}
 
 	offset := (page - 1) * limit
 	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&files).Error; err != nil {
-		return nil, 0, apperr.Wrap(err, 500, apperr.BizUnknown, "查询文件列表失败")
+		return nil, 0, apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to query file list")
 	}
 
 	return files, total, nil
@@ -244,11 +244,11 @@ func (r *FileRepo) DeleteFileByID(ctx context.Context, fileID int64) error {
 		deletedSentinel := int64(-1)
 		if err := tx.Model(&model.Node{}).Where("file_id = ?", fileID).
 			Update("file_id", deletedSentinel).Error; err != nil {
-			return apperr.Wrap(err, 500, apperr.BizUnknown, "标记节点文件已删除失败")
+			return apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to mark node file as deleted")
 		}
 		// 2. 软删除文件记录
 		if err := tx.Delete(&model.File{}, fileID).Error; err != nil {
-			return apperr.Wrap(err, 500, apperr.BizUnknown, "删除文件记录失败")
+			return apperr.Wrap(err, 500, apperr.BizUnknown, "Failed to delete file record")
 		}
 		return nil
 	})

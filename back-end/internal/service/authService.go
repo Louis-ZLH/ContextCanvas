@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/luhao/contextGraph/internal/model"
+	emailpkg "github.com/luhao/contextGraph/pkg/email"
 	apperr "github.com/luhao/contextGraph/pkg/errors"
 	"github.com/luhao/contextGraph/pkg/idgen"
 	"github.com/luhao/contextGraph/pkg/utils"
@@ -40,12 +41,20 @@ type userRepo interface {
 	BeginTX(ctx context.Context) *gorm.DB
 }
 
-type AuthService struct {
-	userRepo userRepo
+type emailPublisher interface {
+	PublishEmailTask(ctx context.Context, to, subject, htmlBody string) error
 }
 
-func NewAuthService(userRepo userRepo) *AuthService {
-	return &AuthService{userRepo: userRepo}
+const codeExpiryMinutes = 1 // 验证码有效期（分钟），同时用于 Redis TTL 和邮件模板显示
+
+type AuthService struct {
+	userRepo    userRepo
+	emailRepo   emailPublisher
+	emailSender *emailpkg.Sender
+}
+
+func NewAuthService(userRepo userRepo, emailRepo emailPublisher, emailSender *emailpkg.Sender) *AuthService {
+	return &AuthService{userRepo: userRepo, emailRepo: emailRepo, emailSender: emailSender}
 }
 
 func (s *AuthService) SendCode(ctx context.Context, email string, reqType string) error {
@@ -73,13 +82,23 @@ func (s *AuthService) SendCode(ctx context.Context, email string, reqType string
 	// generate a 6-digit code
 	code := idgen.RandomNumbers(6)
 
-	// TODO: call email service to send the code, here we just log it
-	log.Println("email: ", email, " code: ", code)
-
-	// store the code in redis with expiration (e.g., 1 minute)
+	// 1. 先存 Redis（必须在发邮件之前）
 	err = s.userRepo.StoreVerificationCode(ctx, email, code, reqType)
 	if err != nil {
 		return err
+	}
+
+	// 2. 再异步发邮件
+	subject := "ContextGraph 验证码"
+	htmlBody := emailpkg.BuildVerificationEmailHTML(code, codeExpiryMinutes)
+	err = s.emailRepo.PublishEmailTask(ctx, email, subject, htmlBody)
+	if err != nil {
+		// publish 失败，fallback 同步发送
+		log.Printf("email publish failed, fallback to sync send: %v", err)
+		if sendErr := s.emailSender.Send(email, subject, htmlBody); sendErr != nil {
+			log.Printf("sync email send also failed: %v", sendErr)
+			return apperr.InternalError("Failed to send verification email")
+		}
 	}
 
 	return nil

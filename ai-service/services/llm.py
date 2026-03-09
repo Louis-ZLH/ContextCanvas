@@ -111,8 +111,8 @@ place citation links **inline** right after the relevant sentence or claim, \
 NOT collected at the end. Use this exact Markdown format for each citation: \
 `[SiteName](url "source")` — note the `"source"` title is **required**. \
 Keep the link text short (site name or brief label). For example: \
-`根据最新数据，约基奇场均三双 [ESPN](https://espn.com/... "source")，\
-领跑MVP榜 [NBA官网](https://nba.com/... "source")。` \
+`Based on the latest data, Jokic is averaging a triple-double [ESPN](https://espn.com/... "source"), \
+leading the MVP race [NBA.com](https://nba.com/... "source").` \
 Do NOT group all sources at the bottom. Each claim should have its own \
 inline citation immediately after it.
 - **Multilingual search** — regardless of what language the user writes \

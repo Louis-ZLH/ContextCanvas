@@ -51,7 +51,7 @@ export function applyOps(state: CanvasState, ops: AtomicOp[]) {
   }
   
 /** 将 AtomicOps 合并进 pendingDelta，包含抵消逻辑 */
-export function mergeOpsToDelta(state: CanvasState,delta: GraphDelta, ops: AtomicOp[]) {
+export function mergeOpsToDelta(_state: CanvasState,delta: GraphDelta, ops: AtomicOp[]) {
 for (const op of ops) {
     switch (op.type) {
     case "create_node": {
