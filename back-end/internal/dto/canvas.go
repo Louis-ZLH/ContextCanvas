@@ -101,3 +101,20 @@ type FullSyncCanvasResponse struct {
 type GetCanvasVersionResponse struct {
 	Version int64 `json:"version"`
 }
+
+// CanvasSearchItem 搜索结果单项
+type CanvasSearchItem struct {
+	CanvasID  int64  `json:"canvas_id,string"`
+	Title     string `json:"title"`
+	UpdatedAt string `json:"updated_at"`
+	MatchType string `json:"match_type"` // "title" | "conversation" | "content"
+	MatchText string `json:"match_text"` // 匹配到的文本或 snippet
+}
+
+// SearchCanvasResponse 搜索响应
+type SearchCanvasResponse struct {
+	Results []CanvasSearchItem `json:"results"`
+	Total   int64              `json:"total"`
+	Page    int                `json:"page"`
+	Limit   int                `json:"limit"`
+}

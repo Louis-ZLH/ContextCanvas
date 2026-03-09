@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/luhao/contextGraph/internal/model"
@@ -334,6 +335,206 @@ func (r *canvasRepo) GetParentNodesByTargetID(ctx context.Context, targetNodeID 
 		return nil, apperr.InternalError("Internal error while getting parent nodes")
 	}
 	return nodes, nil
+}
+
+// CanvasSearchResult 搜索结果
+type CanvasSearchResult struct {
+	CanvasID  int64
+	Title     string
+	UpdatedAt time.Time
+	MatchType string // "title" | "conversation" | "content"
+	MatchText string // 匹配到的文本
+}
+
+// SearchCanvases 全文搜索，返回合并后的结果
+// 搜索优先级：canvas title > conversation title > message content
+func (r *canvasRepo) SearchCanvases(ctx context.Context, userID int64, keyword string, page, limit int) ([]CanvasSearchResult, int64, error) {
+	// 转义 LIKE 通配符
+	escaped := strings.ReplaceAll(keyword, "%", "\\%")
+	escaped = strings.ReplaceAll(escaped, "_", "\\_")
+	likePattern := "%" + escaped + "%"
+
+	var results []CanvasSearchResult
+	seen := make(map[int64]bool) // 按 canvas_id 去重
+
+	// ── Step 1: Canvas title 匹配 ──
+	var titleMatches []struct {
+		ID        int64
+		Title     string
+		UpdatedAt time.Time
+	}
+	if err := r.db.WithContext(ctx).Model(&model.Canvas{}).
+		Select("id, title, updated_at").
+		Where("user_id = ? AND title LIKE ?", userID, likePattern).
+		Order("updated_at DESC").
+		Limit(1000).
+		Find(&titleMatches).Error; err != nil {
+		return nil, 0, fmt.Errorf("search canvas titles: %w", err)
+	}
+
+	for _, m := range titleMatches {
+		results = append(results, CanvasSearchResult{
+			CanvasID:  m.ID,
+			Title:     m.Title,
+			UpdatedAt: m.UpdatedAt,
+			MatchType: "title",
+			MatchText: m.Title,
+		})
+		seen[m.ID] = true
+	}
+
+	// ── Step 2: Conversation title 匹配（排除已命中的 canvas）──
+	var convMatches []struct {
+		CanvasID      int64
+		CanvasTitle   string
+		CanvasUpdated time.Time
+		ConvTitle     string
+	}
+	convQuery := r.db.WithContext(ctx).
+		Table("conversations").
+		Select("conversations.canvas_id, canvases.title AS canvas_title, canvases.updated_at AS canvas_updated, conversations.title AS conv_title").
+		Joins("JOIN canvases ON canvases.id = conversations.canvas_id").
+		Where("canvases.user_id = ? AND conversations.title LIKE ? AND conversations.deleted_at IS NULL AND canvases.deleted_at IS NULL",
+			userID, likePattern).
+		Order("canvases.updated_at DESC").
+		Limit(1000)
+	if err := convQuery.Find(&convMatches).Error; err != nil {
+		return nil, 0, fmt.Errorf("search conversation titles: %w", err)
+	}
+
+	for _, m := range convMatches {
+		if seen[m.CanvasID] {
+			continue
+		}
+		results = append(results, CanvasSearchResult{
+			CanvasID:  m.CanvasID,
+			Title:     m.CanvasTitle,
+			UpdatedAt: m.CanvasUpdated,
+			MatchType: "conversation",
+			MatchText: m.ConvTitle,
+		})
+		seen[m.CanvasID] = true
+	}
+
+	// ── Step 3: Message content 匹配（排除已命中的 canvas）──
+	var msgMatches []struct {
+		CanvasID      int64
+		CanvasTitle   string
+		CanvasUpdated time.Time
+		Content       string
+	}
+
+	// 收集已命中的 canvas_id，用于在 SQL 层提前排除
+	excludeIDs := make([]int64, 0, len(seen))
+	for id := range seen {
+		excludeIDs = append(excludeIDs, id)
+	}
+
+	msgQuery := r.db.WithContext(ctx).
+		Table("messages").
+		Select(`conversations.canvas_id,
+				canvases.title AS canvas_title,
+				canvases.updated_at AS canvas_updated,
+				messages.content`).
+		Joins("JOIN conversations ON conversations.id = messages.conversation_id").
+		Joins("JOIN canvases ON canvases.id = conversations.canvas_id")
+
+	// 构建子查询：取每个 canvas 下第一条匹配 message 的 id
+	if len(excludeIDs) > 0 {
+		msgQuery = msgQuery.Joins(`JOIN (
+			SELECT MIN(m2.id) AS min_id
+			FROM messages m2
+			JOIN conversations c2 ON c2.id = m2.conversation_id
+			JOIN canvases cv2 ON cv2.id = c2.canvas_id
+			WHERE cv2.user_id = ? AND m2.content LIKE ? AND m2.deleted_at IS NULL
+			  AND c2.deleted_at IS NULL AND cv2.deleted_at IS NULL
+			  AND c2.canvas_id NOT IN (?)
+			GROUP BY c2.canvas_id
+			LIMIT 1000
+		) first_msg ON first_msg.min_id = messages.id`, userID, likePattern, excludeIDs)
+	} else {
+		msgQuery = msgQuery.Joins(`JOIN (
+			SELECT MIN(m2.id) AS min_id
+			FROM messages m2
+			JOIN conversations c2 ON c2.id = m2.conversation_id
+			JOIN canvases cv2 ON cv2.id = c2.canvas_id
+			WHERE cv2.user_id = ? AND m2.content LIKE ? AND m2.deleted_at IS NULL
+			  AND c2.deleted_at IS NULL AND cv2.deleted_at IS NULL
+			GROUP BY c2.canvas_id
+			LIMIT 1000
+		) first_msg ON first_msg.min_id = messages.id`, userID, likePattern)
+	}
+
+	msgQuery = msgQuery.
+		Where("canvases.user_id = ? AND messages.deleted_at IS NULL AND conversations.deleted_at IS NULL AND canvases.deleted_at IS NULL",
+			userID).
+		Order("canvases.updated_at DESC").
+		Limit(1000)
+	if err := msgQuery.Find(&msgMatches).Error; err != nil {
+		return nil, 0, fmt.Errorf("search message content: %w", err)
+	}
+
+	for _, m := range msgMatches {
+		snippet := extractSnippet(m.Content, keyword, 40)
+		results = append(results, CanvasSearchResult{
+			CanvasID:  m.CanvasID,
+			Title:     m.CanvasTitle,
+			UpdatedAt: m.CanvasUpdated,
+			MatchType: "content",
+			MatchText: snippet,
+		})
+		seen[m.CanvasID] = true
+	}
+
+	// ── 分页 ──
+	total := int64(len(results))
+	start := (page - 1) * limit
+	if start >= int(total) {
+		return []CanvasSearchResult{}, total, nil
+	}
+	end := start + limit
+	if end > int(total) {
+		end = int(total)
+	}
+
+	return results[start:end], total, nil
+}
+
+// extractSnippet 从文本中提取关键词附近的 snippet
+// 使用 []rune 进行切片操作，避免中文/emoji 等多字节字符被截断
+func extractSnippet(content, keyword string, contextLen int) string {
+	runes := []rune(content)
+	lower := strings.ToLower(content)
+	kw := strings.ToLower(keyword)
+	idx := strings.Index(lower, kw)
+	if idx == -1 {
+		if len(runes) > 80 {
+			return string(runes[:80]) + "..."
+		}
+		return content
+	}
+
+	// 将 byte 偏移量转换为 rune 偏移量
+	runeIdx := len([]rune(content[:idx]))
+	kwRuneLen := len([]rune(keyword))
+
+	start := runeIdx - contextLen
+	end := runeIdx + kwRuneLen + contextLen
+	prefix := ""
+	suffix := ""
+
+	if start < 0 {
+		start = 0
+	} else {
+		prefix = "..."
+	}
+	if end > len(runes) {
+		end = len(runes)
+	} else {
+		suffix = "..."
+	}
+
+	return prefix + string(runes[start:end]) + suffix
 }
 
 // generateUniqueCanvasTitle 根据已有标题生成唯一的 "Untitled Canvas" 标题

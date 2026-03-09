@@ -81,6 +81,23 @@ export interface FileListResponse {
     limit: number;
 }
 
+// 搜索结果单项
+export interface CanvasSearchItem {
+    canvasId: string;
+    title: string;
+    updatedAt: string;
+    matchType: "title" | "conversation" | "content";
+    matchText: string;
+}
+
+// 搜索响应
+export interface CanvasSearchResponse {
+    results: CanvasSearchItem[];
+    total: number;
+    page: number;
+    limit: number;
+}
+
 // 前端传后端的数据格式
 export interface DTONodeReadyToSend {
     id: string;

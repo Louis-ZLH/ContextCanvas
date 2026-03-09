@@ -6,6 +6,7 @@ import (
 
 	"github.com/luhao/contextGraph/internal/dto"
 	"github.com/luhao/contextGraph/internal/model"
+	"github.com/luhao/contextGraph/internal/repo"
 	apperr "github.com/luhao/contextGraph/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -24,6 +25,7 @@ type canvasRepo interface {
 	GetCanvasVersion(ctx context.Context, canvasID int64, userID int64) (int64, error)
 	ListCanvasConversations(ctx context.Context, canvasID int64) ([]model.Conversation, error)
 	GetParentNodesByTargetID(ctx context.Context, targetNodeID string) ([]model.Node, error)
+	SearchCanvases(ctx context.Context, userID int64, keyword string, page, limit int) ([]repo.CanvasSearchResult, int64, error)
 }
 
 type canvasService struct {
@@ -218,6 +220,10 @@ func (s *canvasService) ListCanvasConversations(ctx context.Context, canvasID in
 	}
 
 	return conversations, nil
+}
+
+func (s *canvasService) SearchCanvases(ctx context.Context, userID int64, keyword string, page, limit int) ([]repo.CanvasSearchResult, int64, error) {
+	return s.canvasRepo.SearchCanvases(ctx, userID, keyword, page, limit)
 }
 
 // convertDTONodesToModel 将 DTO 节点转换为 Model 节点

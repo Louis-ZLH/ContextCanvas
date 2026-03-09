@@ -1,36 +1,82 @@
-import { Plus, LayoutTemplate, ArrowRight, Sparkles, Loader2 } from "lucide-react";
+import { Plus, MessageCircle, FolderOpen, ArrowRight, Sparkles, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { createCanvas as createCanvasService } from "../../service/canvas";
 import { useNavigate } from "react-router";
 import { toast } from "react-hot-toast";
 import { queryClient } from "../../query";
+import { FilePickerModal } from "./FilePickerModal";
+
+type PendingMode =
+  | { mode: "blank" }
+  | { mode: "ask" }
+  | { mode: "resources"; fileIds: string[] };
 
 export default function NewCanvas() {
   const navigate = useNavigate();
+  const [isFilePickerOpen, setIsFilePickerOpen] = useState(false);
+  const pendingModeRef = useRef<PendingMode | null>(null);
+
   const { mutate: createCanvas, isPending } = useMutation({
     mutationFn: createCanvasService,
-    onSuccess: (data) => {
-      if(data.success && data.data) {
-        navigate(`/canvas/${data.data?.id}`);
-        queryClient.invalidateQueries({ queryKey: ["canvas", "list"] });
-      }
-    },
     onError: (error) => {
+      pendingModeRef.current = null;
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
         toast.error("Failed to create canvas");
       }
-    }
+    },
   });
 
   const handleCreateBlankCanvas = () => {
-    createCanvas();
+    pendingModeRef.current = { mode: "blank" };
+    createCanvas(undefined, {
+      onSuccess: (data) => {
+        if (data.success && data.data) {
+          navigate(`/canvas/${data.data.id}`);
+          queryClient.invalidateQueries({ queryKey: ["canvas", "list"] });
+        }
+      },
+    });
+  };
+
+  const handleAskQuestion = () => {
+    pendingModeRef.current = { mode: "ask" };
+    createCanvas(undefined, {
+      onSuccess: (data) => {
+        if (data.success && data.data) {
+          navigate(`/canvas/${data.data.id}`, {
+            state: { initialMode: "ask" },
+          });
+          queryClient.invalidateQueries({ queryKey: ["canvas", "list"] });
+        }
+      },
+    });
+  };
+
+  const handleBeginWithResources = () => {
+    setIsFilePickerOpen(true);
+  };
+
+  const handleFilesSelected = (fileIds: string[]) => {
+    setIsFilePickerOpen(false);
+    pendingModeRef.current = { mode: "resources", fileIds };
+    createCanvas(undefined, {
+      onSuccess: (data) => {
+        if (data.success && data.data) {
+          navigate(`/canvas/${data.data.id}`, {
+            state: { initialMode: "resources", fileIds },
+          });
+          queryClient.invalidateQueries({ queryKey: ["canvas", "list"] });
+        }
+      },
+    });
   };
 
   return (
     <div className="w-full h-full bg-canvas flex flex-col items-center justify-center p-6 animate-fade-in">
-      <div className="max-w-4xl w-full space-y-12">
+      <div className="max-w-5xl w-full space-y-12">
         {/* Header Section */}
         <div className="text-center space-y-4">
           <div className="inline-flex items-center justify-center p-3 bg-accent/10 rounded-full mb-4">
@@ -45,14 +91,14 @@ export default function NewCanvas() {
         </div>
 
         {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
-          {/* Create Empty Card */}
-          <button 
-            onClick={handleCreateBlankCanvas} 
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
+          {/* Blank Canvas Card */}
+          <button
+            onClick={handleCreateBlankCanvas}
             disabled={isPending}
             className={`group relative flex flex-col items-start p-8 h-80 rounded-3xl border-2 border-dashed border-main bg-node-bg/50 transition-[transform,box-shadow,background-color,border-color] duration-300 text-left ${
-              isPending 
-                ? "cursor-not-allowed opacity-70" 
+              isPending
+                ? "cursor-not-allowed opacity-70"
                 : "hover:border-accent hover:bg-node-bg cursor-pointer hover:-translate-y-1 hover:shadow-xl"
             }`}
           >
@@ -82,14 +128,13 @@ export default function NewCanvas() {
             </div>
           </button>
 
-          {/* Templates Card */}
-          {/*TODO: Implement template creation */}
-          <button 
-            onClick={handleCreateBlankCanvas} 
+          {/* Ask a Question Card */}
+          <button
+            onClick={handleAskQuestion}
             disabled={isPending}
             className={`group relative flex flex-col items-start p-8 h-80 rounded-3xl border border-main bg-node-bg shadow-sm transition-[transform,box-shadow,background-color,border-color] duration-300 text-left ${
-              isPending 
-                ? "cursor-not-allowed opacity-70" 
+              isPending
+                ? "cursor-not-allowed opacity-70"
                 : "hover:border-accent hover:shadow-xl cursor-pointer hover:-translate-y-1"
             }`}
           >
@@ -100,22 +145,60 @@ export default function NewCanvas() {
             )}
 
             <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center mb-auto group-hover:scale-110 transition-transform duration-300">
-              <LayoutTemplate className="w-8 h-8 text-primary group-hover:text-accent transition-colors" />
+              <MessageCircle className="w-8 h-8 text-primary group-hover:text-accent transition-colors" />
             </div>
 
             <div className="space-y-2 mt-auto">
               <h3 className="text-2xl font-bold text-primary group-hover:text-accent transition-colors">
-                Use Templates
+                Ask a Question
               </h3>
               <p className="text-secondary text-base leading-relaxed group-hover:text-primary/80 transition-colors">
-                Quick start based on mature thinking models.
+                Start a conversation with AI to explore ideas.
                 <br />
-                Includes flowcharts, architecture diagrams, and more.
+                Jump straight into a focused chat session.
+              </p>
+            </div>
+          </button>
+
+          {/* Begin with Resources Card */}
+          <button
+            onClick={handleBeginWithResources}
+            disabled={isPending}
+            className={`group relative flex flex-col items-start p-8 h-80 rounded-3xl border border-main bg-node-bg shadow-sm transition-[transform,box-shadow,background-color,border-color] duration-300 text-left ${
+              isPending
+                ? "cursor-not-allowed opacity-70"
+                : "hover:border-accent hover:shadow-xl cursor-pointer hover:-translate-y-1"
+            }`}
+          >
+            {!isPending && (
+              <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-[opacity,transform] duration-300 transform translate-x-2 group-hover:translate-x-0">
+                <ArrowRight className="w-6 h-6 text-accent" />
+              </div>
+            )}
+
+            <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center mb-auto group-hover:scale-110 transition-transform duration-300">
+              <FolderOpen className="w-8 h-8 text-primary group-hover:text-accent transition-colors" />
+            </div>
+
+            <div className="space-y-2 mt-auto">
+              <h3 className="text-2xl font-bold text-primary group-hover:text-accent transition-colors">
+                Begin with Resources
+              </h3>
+              <p className="text-secondary text-base leading-relaxed group-hover:text-primary/80 transition-colors">
+                Select files as context for your conversation.
+                <br />
+                AI will use your resources to provide insights.
               </p>
             </div>
           </button>
         </div>
       </div>
+
+      <FilePickerModal
+        isOpen={isFilePickerOpen}
+        onClose={() => setIsFilePickerOpen(false)}
+        onConfirm={handleFilesSelected}
+      />
     </div>
   );
 }

@@ -48,6 +48,8 @@ const canvasSlice = createSlice({
       state.undoStack = [];
       state.redoStack = [];
       state.pendingDelta = emptyDelta();
+      state.showControls = true;
+      state.maximizedNodeId = null;
     },
     /** 执行一个可撤销的操作 ，增，删*/
     executeCommand(state, action: PayloadAction<Command>) {
@@ -304,6 +306,15 @@ const canvasSlice = createSlice({
     setMaximizedNode: (state, action: PayloadAction<string | null>) => {
       state.maximizedNodeId = action.payload;
     },
+    /** 一次性：创建节点 + 最大化 + 隐藏控件，避免多次 dispatch 在 StrictMode 下的竞态 */
+    executeCommandAndMaximize(
+      state,
+      action: PayloadAction<{ cmd: Command; nodeId: string }>
+    ) {
+      applyCommand(state, action.payload.cmd);
+      state.maximizedNodeId = action.payload.nodeId;
+      state.showControls = false;
+    },
   },
 });
 
@@ -332,6 +343,7 @@ export const {
   deleteNodesAndEdges,
   toggleShowControls,
   setMaximizedNode,
+  executeCommandAndMaximize,
 } = canvasSlice.actions;
 
 export default canvasSlice.reducer;

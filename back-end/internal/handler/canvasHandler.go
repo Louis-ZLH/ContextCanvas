@@ -6,9 +6,13 @@ import (
 	"net/http"
 	"strconv"
 
+	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/luhao/contextGraph/internal/dto"
 	"github.com/luhao/contextGraph/internal/model"
+	"github.com/luhao/contextGraph/internal/repo"
 	apperr "github.com/luhao/contextGraph/pkg/errors"
 )
 
@@ -23,6 +27,7 @@ type CanvasService interface {
 	FullSyncCanvas(ctx context.Context, canvasID int64, userID int64, delta dto.FullSyncCanvasRequest) (dto.FullSyncCanvasResponse, error)
 	GetCanvasVersion(ctx context.Context, canvasID int64, userID int64) (int64, error)
 	ListCanvasConversations(ctx context.Context, canvasID int64, userID int64) ([]model.Conversation, error)
+	SearchCanvases(ctx context.Context, userID int64, keyword string, page, limit int) ([]repo.CanvasSearchResult, int64, error)
 }
 
 type CanvasHandler struct {
@@ -336,5 +341,69 @@ func (h *CanvasHandler) ListCanvasConversations(c *gin.Context) {
 
 	c.JSON(http.StatusOK, dto.Success(dto.ListCanvasConversationsResponse{
 		Conversations: dtoConversations,
+	}))
+}
+
+func (h *CanvasHandler) SearchCanvases(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, dto.Error(apperr.BizUnauthorized, "Unauthorized"))
+		return
+	}
+
+	keyword := strings.TrimSpace(c.Query("keyword"))
+	if keyword == "" {
+		c.JSON(http.StatusOK, dto.Success(dto.SearchCanvasResponse{
+			Results: []dto.CanvasSearchItem{},
+			Total:   0,
+			Page:    1,
+			Limit:   20,
+		}))
+		return
+	}
+
+	if len([]rune(keyword)) > 100 {
+		c.JSON(http.StatusBadRequest, dto.Error(apperr.BizInvalidParams, "Keyword too long (max 100 characters)"))
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	results, total, err := h.canvasService.SearchCanvases(c.Request.Context(), userID.(int64), keyword, page, limit)
+	if err != nil {
+		if appErr, ok := apperr.GetAppError(err); ok {
+			c.JSON(appErr.Code, dto.Error(appErr.BizCode, appErr.Message))
+			return
+		}
+		c.JSON(500, dto.Error(apperr.BizUnknown, "Internal Server Error"))
+		return
+	}
+
+	items := make([]dto.CanvasSearchItem, len(results))
+	for i, r := range results {
+		items[i] = dto.CanvasSearchItem{
+			CanvasID:  r.CanvasID,
+			Title:     r.Title,
+			UpdatedAt: r.UpdatedAt.Format(time.RFC3339),
+			MatchType: r.MatchType,
+			MatchText: r.MatchText,
+		}
+	}
+
+	c.JSON(http.StatusOK, dto.Success(dto.SearchCanvasResponse{
+		Results: items,
+		Total:   total,
+		Page:    page,
+		Limit:   limit,
 	}))
 }

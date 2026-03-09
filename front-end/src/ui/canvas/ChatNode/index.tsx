@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo, memo } from "react";
+import { useState, useCallback, useRef, useMemo, memo } from "react";
 import { Handle, Position, useReactFlow, type Viewport } from "@xyflow/react";
 import { useSelector, useDispatch, useStore } from "react-redux";
 import type { ThemeName } from "../../../feature/user/userSlice";
@@ -60,15 +60,6 @@ function ChatNode({ id, selected }: { id: string; selected?: boolean }) {
   );
   const label = title ?? "New Chat";
 
-  // cleanup: 组件卸载时如果 showControls 为 false 则恢复。用 store 惰性读取，不订阅。
-  useEffect(() => {
-    return () => {
-      if (!store.getState().canvas.showControls) {
-        dispatch(toggleShowControls(true));
-      }
-    };
-  }, [store, dispatch]);
-
   const handleSizeChange = useCallback(() => {
     dispatch(toggleShowControls());
     if (!isMaximized) {
@@ -86,6 +77,11 @@ function ChatNode({ id, selected }: { id: string; selected?: boolean }) {
       dispatch(setMaximizedNode(null));
       if (viewportState.current) {
         setViewport(viewportState.current as Viewport, { duration: 500 });
+      } else {
+        // Node was created already maximized (ask mode), no saved viewport
+        window.requestAnimationFrame(() => {
+          fitView({ duration: 500 });
+        });
       }
       viewportState.current = null;
     }

@@ -2,7 +2,7 @@ import type { JSONResponse } from "./type";
 import { apiRequest, ApiError } from "../util/api";
 import type { CanvasListInfo } from "./type";
 import { toCamelCase } from "../util/transform";
-import type { Canvas, CanvasDetail, syncResponse, fullSyncResponse } from "./type";
+import type { Canvas, CanvasDetail, syncResponse, fullSyncResponse, CanvasSearchResponse } from "./type";
 import type { GraphDelta } from "../feature/canvas/types";
 import type { Node, Edge } from "../feature/canvas/types";
 import type { getCanvasVersionResponse, BackendNode, DTONodeReadyToSend } from "./type";
@@ -192,6 +192,32 @@ export function convertBackendNodeToNode(node: BackendNode): Node {
             fileId: node.fileId,
         },
     };
+}
+
+export async function searchCanvases(params: {
+    keyword: string;
+    page: number;
+    limit: number;
+}): Promise<{ success: boolean; message: string; data: CanvasSearchResponse | null }> {
+    try {
+        const query = new URLSearchParams({
+            keyword: params.keyword,
+            page: String(params.page),
+            limit: String(params.limit),
+        });
+        const response = await apiRequest<JSONResponse>(`/api/canvas-search?${query}`, {
+            method: "GET",
+        });
+        if (response.code !== 0) {
+            return { success: false, message: response.message, data: null };
+        }
+        return { success: true, message: response.message, data: toCamelCase(response.data) as CanvasSearchResponse };
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            return { success: false, message: error.message, data: null };
+        }
+        return { success: false, message: "Failed to search canvases", data: null };
+    }
 }
 
 export async function getConversationList(canvasId: string): Promise<{ success: boolean, message: string, data: Conversation[] | null }> {

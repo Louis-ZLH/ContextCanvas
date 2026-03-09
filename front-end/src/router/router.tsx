@@ -10,6 +10,7 @@ import { authMiddleware } from "./middleware/auth";
 import { canvasLayoutLoader, canvasLoader } from "./loader/canvas";
 import NewCanvas from "../view/canvas/NewCanvas";
 import MyResource from "../view/canvas/MyResource";
+import SearchCanvases from "../view/canvas/SearchCanvases";
 
 export const router = createBrowserRouter([
   {
@@ -60,7 +61,7 @@ export const router = createBrowserRouter([
           },
           {
             path: "search",
-            element: <div>Search Canvases</div>,
+            element: <SearchCanvases />,
           },
           {
             path: "myresource",

@@ -22,4 +22,9 @@ func NewCanvasRouter(api *gin.RouterGroup, a *app.App) {
 	canvasApi.GET("/:id/version", a.H.CanvasHandler.GetCanvasVersion) // 获取画布版本号接口，供前端重新聚焦使用
 
 	canvasApi.GET("/:id/conversation/list", a.H.CanvasHandler.ListCanvasConversations)
+
+	// 独立路由前缀，不在 canvas group 下，避免与 /:id 路由冲突
+	canvasSearchApi := api.Group("")
+	canvasSearchApi.Use(middleware.AuthMiddleware(a.RDB, a.DB))
+	canvasSearchApi.GET("/canvas-search", a.H.CanvasHandler.SearchCanvases)
 }
