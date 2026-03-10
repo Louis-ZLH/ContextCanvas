@@ -16,6 +16,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ~/ContextGraph
-            git pull
+            git fetch origin
+            git reset --hard origin/main
             cd deploy
             docker compose up -d --build
