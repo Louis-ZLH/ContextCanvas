@@ -9,6 +9,6 @@ import (
 func NewUserRouter(api *gin.RouterGroup, a *app.App) {
 	userApi := api.Group("/user")
 
-	userApi.Use(middleware.AuthMiddleware(a.RDB, a.DB))
+	userApi.Use(middleware.AuthMiddleware(a.RDB, a.DB, a.Cfg.CookieSecure))
 	userApi.GET("/profile",a.H.UserHandler.GetProfile)
 }

@@ -5,7 +5,7 @@ import { GuideContent } from "../ui/guide/GuideContent";
 export default function GuidePage() {
   return (
     <div
-      className="relative antialiased overflow-x-hidden bg-[#fdfbf7] selection:bg-orange-200/40 h-screen overflow-y-auto text-stone-800 ModernScroller"
+      className="relative antialiased overflow-x-hidden bg-[#fdfbf7] selection:bg-orange-200/40 h-dvh overflow-y-auto text-stone-800 ModernScroller"
       style={{ fontFamily: "'Georgia', 'Cambria', 'Times New Roman', serif" }}
     >
       <div className="fixed -inset-[100vh] bg-[#fdfbf7] -z-10 pointer-events-none"></div>

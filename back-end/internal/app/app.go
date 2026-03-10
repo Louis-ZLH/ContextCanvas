@@ -176,7 +176,7 @@ func wireHandlers(db *gorm.DB, rdb *redis.Client, minioClient *minio.Client, mq 
 		FromName: cfg.SMTPFromName,
 	}
 	authService := service.NewAuthService(userRepo, emailRepo, emailSender)
-	authHandler := handler.NewAuthHandler(authService)
+	authHandler := handler.NewAuthHandler(authService, cfg.CookieSecure)
 
 	// User
 	userSerice := service.NewUserService(userRepo)

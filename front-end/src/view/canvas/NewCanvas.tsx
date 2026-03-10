@@ -76,7 +76,7 @@ export default function NewCanvas() {
 
   return (
     <div className="w-full h-full bg-canvas flex flex-col items-center justify-center p-4 sm:p-6 animate-fade-in">
-      <div className="max-w-5xl w-full space-y-6 sm:space-y-12">
+      <div className="max-w-5xl w-full space-y-4 sm:space-y-12">
         {/* Header Section */}
         <div className="text-center space-y-2 sm:space-y-4">
           <div className="inline-flex items-center justify-center p-2 sm:p-3 bg-accent/10 rounded-full mb-2 sm:mb-4">
@@ -91,12 +91,12 @@ export default function NewCanvas() {
         </div>
 
         {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 px-0 sm:px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8 px-0 sm:px-4">
           {/* Blank Canvas Card */}
           <button
             onClick={handleCreateBlankCanvas}
             disabled={isPending}
-            className={`group relative flex flex-col items-start p-5 sm:p-8 h-48 sm:h-80 rounded-2xl sm:rounded-3xl border-2 border-dashed border-main bg-node-bg/50 transition-[transform,box-shadow,background-color,border-color] duration-300 text-left ${
+            className={`group relative flex flex-col items-start p-4 sm:p-8 h-36 sm:h-80 rounded-2xl sm:rounded-3xl border-2 border-dashed border-main bg-node-bg/50 transition-[transform,box-shadow,background-color,border-color] duration-300 text-left ${
               isPending
                 ? "cursor-not-allowed opacity-70"
                 : "hover:border-accent hover:bg-node-bg cursor-pointer hover:-translate-y-1 hover:shadow-xl"
@@ -132,7 +132,7 @@ export default function NewCanvas() {
           <button
             onClick={handleAskQuestion}
             disabled={isPending}
-            className={`group relative flex flex-col items-start p-5 sm:p-8 h-48 sm:h-80 rounded-2xl sm:rounded-3xl border border-main bg-node-bg shadow-sm transition-[transform,box-shadow,background-color,border-color] duration-300 text-left ${
+            className={`group relative flex flex-col items-start p-4 sm:p-8 h-36 sm:h-80 rounded-2xl sm:rounded-3xl border border-main bg-node-bg shadow-sm transition-[transform,box-shadow,background-color,border-color] duration-300 text-left ${
               isPending
                 ? "cursor-not-allowed opacity-70"
                 : "hover:border-accent hover:shadow-xl cursor-pointer hover:-translate-y-1"
@@ -164,7 +164,7 @@ export default function NewCanvas() {
           <button
             onClick={handleBeginWithResources}
             disabled={isPending}
-            className={`group relative flex flex-col items-start p-5 sm:p-8 h-48 sm:h-80 rounded-2xl sm:rounded-3xl border border-main bg-node-bg shadow-sm transition-[transform,box-shadow,background-color,border-color] duration-300 text-left ${
+            className={`group relative flex flex-col items-start p-4 sm:p-8 h-36 sm:h-80 rounded-2xl sm:rounded-3xl border border-main bg-node-bg shadow-sm transition-[transform,box-shadow,background-color,border-color] duration-300 text-left ${
               isPending
                 ? "cursor-not-allowed opacity-70"
                 : "hover:border-accent hover:shadow-xl cursor-pointer hover:-translate-y-1"

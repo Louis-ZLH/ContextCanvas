@@ -9,7 +9,7 @@ import (
 func NewChatRouter(api *gin.RouterGroup, a *app.App) {
 	chatApi := api.Group("/chat")
 
-	chatApi.Use(middleware.AuthMiddleware(a.RDB, a.DB))
+	chatApi.Use(middleware.AuthMiddleware(a.RDB, a.DB, a.Cfg.CookieSecure))
 	chatApi.POST("/create", a.H.ConversationHandler.CreateConversation)
 	chatApi.GET("/history/:conversationId", a.H.ConversationHandler.GetConversationHistory)
 	chatApi.PUT("/conversations/:conversationId/leaf", a.H.ConversationHandler.UpdateCurrentLeaf)

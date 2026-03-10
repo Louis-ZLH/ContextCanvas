@@ -21,7 +21,7 @@ export default function CanvasLayout() {
   }, [theme]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-app">
+    <div className="flex h-dvh overflow-hidden bg-app">
       <Sidebar user={data?.data as User | null} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       {/* Main */}
       <div className="flex-1 flex flex-col relative min-w-0 lg:ml-0">

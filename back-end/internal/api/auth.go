@@ -14,6 +14,6 @@ func NewAuthRouter(api *gin.RouterGroup, a *app.App) {
 	authApi.POST("/register", middleware.RegisterMiddleware(), a.H.AuthHandler.Register)
 	authApi.POST("/login", a.H.AuthHandler.Login)
 
-	authApi.POST("/logout", middleware.AuthMiddleware(a.RDB, a.DB), a.H.AuthHandler.Logout)
+	authApi.POST("/logout", middleware.AuthMiddleware(a.RDB, a.DB, a.Cfg.CookieSecure), a.H.AuthHandler.Logout)
 	authApi.POST("/reset-password", middleware.ResetPasswordMiddleware(), a.H.AuthHandler.ResetPassword)
 }

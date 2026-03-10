@@ -8,7 +8,7 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen w-full flex bg-[#fdfbf7] text-stone-800 selection:bg-orange-200/60 overflow-hidden" style={{ fontFamily: "'Georgia', 'Cambria', 'Times New Roman', serif" }}>
+    <div className="min-h-dvh w-full flex bg-[#fdfbf7] text-stone-800 selection:bg-orange-200/60 overflow-hidden" style={{ fontFamily: "'Georgia', 'Cambria', 'Times New Roman', serif" }}>
       {/* Left Panel - Visuals (Hidden on mobile) */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-5/12 flex-col justify-between relative bg-[#f5f0e8] border-r border-stone-200 p-12 overflow-hidden">
         {/* Subtle paper texture */}

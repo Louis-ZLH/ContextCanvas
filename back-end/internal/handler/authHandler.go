@@ -22,11 +22,12 @@ type AuthService interface {
 }
 
 type AuthHandler struct {
-	authService AuthService
+	authService  AuthService
+	cookieSecure bool
 }
 
-func NewAuthHandler(authService AuthService) *AuthHandler {
-	return &AuthHandler{authService: authService}
+func NewAuthHandler(authService AuthService, cookieSecure bool) *AuthHandler {
+	return &AuthHandler{authService: authService, cookieSecure: cookieSecure}
 }
 
 func (h *AuthHandler) SendCode(c *gin.Context) {
@@ -73,7 +74,7 @@ func (h *AuthHandler) VerifyCode(c *gin.Context) {
 
 	// 设置 HttpOnly 和 Secure Cookie
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("verification_token_"+req.Type, token, 60 * 5, "/", "", true, true)
+	c.SetCookie("verification_token_"+req.Type, token, 60 * 5, "/", "", h.cookieSecure, true)
 
 	c.JSON(http.StatusOK, dto.SuccessMsg("Code verified successfully"))
 }
@@ -123,9 +124,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("auth_token", token, 60 * 60 * 24 * 7, "/", "", true, true)
-	c.SetCookie("session_id", sessionID, 60 * 60 * 24 * 7, "/", "", true, true)
-	c.SetCookie("verification_token_register", "", -1, "/", "", true, true)
+	c.SetCookie("auth_token", token, 60 * 60 * 24 * 7, "/", "", h.cookieSecure, true)
+	c.SetCookie("session_id", sessionID, 60 * 60 * 24 * 7, "/", "", h.cookieSecure, true)
+	c.SetCookie("verification_token_register", "", -1, "/", "", h.cookieSecure, true)
 
 	c.JSON(http.StatusOK, dto.Success(dto.RegisterResponse{
 		UserID:   user.ID,
@@ -155,8 +156,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("auth_token", token, 60 * 60 * 24 * 7, "/", "", true, true)
-	c.SetCookie("session_id", sessionID, 60 * 60 * 24 * 7, "/", "", true, true)
+	c.SetCookie("auth_token", token, 60 * 60 * 24 * 7, "/", "", h.cookieSecure, true)
+	c.SetCookie("session_id", sessionID, 60 * 60 * 24 * 7, "/", "", h.cookieSecure, true)
 
 	c.JSON(http.StatusOK, dto.SuccessMsg("Login successfully"))
 }
@@ -180,8 +181,8 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	}
 
 	// 清除 Cookie
-	c.SetCookie("auth_token", "", -1, "/", "", true, true)
-	c.SetCookie("session_id", "", -1, "/", "", true, true)
+	c.SetCookie("auth_token", "", -1, "/", "", h.cookieSecure, true)
+	c.SetCookie("session_id", "", -1, "/", "", h.cookieSecure, true)
 
 	c.JSON(http.StatusOK, dto.SuccessMsg("Logout successful"))
 }
@@ -224,9 +225,9 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	}
 
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("auth_token", token, 60 * 60 * 24 * 7, "/", "", true, true)
-	c.SetCookie("session_id", session_id, 60 * 60 * 24 * 7, "/", "", true, true)
-	c.SetCookie("verification_token_reset_password", "", -1, "/", "", true, true)
+	c.SetCookie("auth_token", token, 60 * 60 * 24 * 7, "/", "", h.cookieSecure, true)
+	c.SetCookie("session_id", session_id, 60 * 60 * 24 * 7, "/", "", h.cookieSecure, true)
+	c.SetCookie("verification_token_reset_password", "", -1, "/", "", h.cookieSecure, true)
 
 
 	c.JSON(http.StatusOK, dto.SuccessMsg("Password reset successfully"))

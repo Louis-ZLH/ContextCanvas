@@ -9,7 +9,7 @@ import (
 func NewFileRouter(api *gin.RouterGroup, a *app.App) {
 	fileApi := api.Group("/file")
 
-	fileApi.Use(middleware.AuthMiddleware(a.RDB, a.DB))
+	fileApi.Use(middleware.AuthMiddleware(a.RDB, a.DB, a.Cfg.CookieSecure))
 	fileApi.GET("/list", a.H.FileHandler.ListFiles)
 	fileApi.GET("/storage", a.H.FileHandler.GetStorageUsage)
 	fileApi.POST("/upload", a.H.FileHandler.UploadFile)

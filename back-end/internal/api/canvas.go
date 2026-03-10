@@ -9,7 +9,7 @@ import (
 func NewCanvasRouter(api *gin.RouterGroup, a *app.App) {
 	canvasApi := api.Group("/canvas")
 
-	canvasApi.Use(middleware.AuthMiddleware(a.RDB, a.DB))
+	canvasApi.Use(middleware.AuthMiddleware(a.RDB, a.DB, a.Cfg.CookieSecure))
 	// Add canvas-related routes here
 	canvasApi.POST("/create", a.H.CanvasHandler.CreateCanvas)
 	canvasApi.GET("/list", a.H.CanvasHandler.ListCanvas)
@@ -25,6 +25,6 @@ func NewCanvasRouter(api *gin.RouterGroup, a *app.App) {
 
 	// 独立路由前缀，不在 canvas group 下，避免与 /:id 路由冲突
 	canvasSearchApi := api.Group("")
-	canvasSearchApi.Use(middleware.AuthMiddleware(a.RDB, a.DB))
+	canvasSearchApi.Use(middleware.AuthMiddleware(a.RDB, a.DB, a.Cfg.CookieSecure))
 	canvasSearchApi.GET("/canvas-search", a.H.CanvasHandler.SearchCanvases)
 }

@@ -61,7 +61,7 @@ func ResetPasswordMiddleware() gin.HandlerFunc{
 	}
 }
 
-func AuthMiddleware(rdb *redis.Client, db *gorm.DB) gin.HandlerFunc {
+func AuthMiddleware(rdb *redis.Client, db *gorm.DB, cookieSecure bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err_token := c.Cookie("auth_token")
 		sessionID, err_sessionID := c.Cookie("session_id")
@@ -154,8 +154,8 @@ func AuthMiddleware(rdb *redis.Client, db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
-			c.SetCookie("auth_token", newToken, 3600*24*7,"/","",true,true)
-			c.SetCookie("session_id", sessionID, 3600*24*7,"/","",true,true)
+			c.SetCookie("auth_token", newToken, 3600*24*7,"/","",cookieSecure,true)
+			c.SetCookie("session_id", sessionID, 3600*24*7,"/","",cookieSecure,true)
 			go func ()  {
 				rdb.Set(context.Background(), rdbKey, &sessionData, 7*24*time.Hour)
 				log.Println("Session data updated in Redis for user:", sessionData.UserID)

@@ -39,6 +39,9 @@ type Config struct {
 	SMTPUser     string
 	SMTPPassword string
 	SMTPFromName string
+
+	// Cookie 安全配置
+	CookieSecure bool
 }
 
 func Load() *Config {
@@ -83,6 +86,7 @@ func Load() *Config {
 	}
 
 	cfg.RedisDB = 0
+	cfg.CookieSecure = cfg.Env != "dev"
 
 	return cfg
 }
