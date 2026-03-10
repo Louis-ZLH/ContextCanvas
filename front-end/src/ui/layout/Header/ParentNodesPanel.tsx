@@ -31,11 +31,17 @@ export function ParentNodesPanel() {
     <div className="relative" ref={panelRef}>
       <button
         onClick={() => setPanelOpenForId((prev) => prev === maximizedNodeId ? null : maximizedNodeId)}
-        className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-main node-bg text-sm cursor-pointer transition-colors hover:opacity-80"
+        className="relative flex items-center gap-2 p-2 sm:px-4 sm:py-1.5 rounded-full border border-main node-bg text-sm cursor-pointer transition-colors hover:opacity-80"
         style={{ color: "var(--text-primary)" }}
       >
         <Mail size={16} style={{ color: "var(--accent)" }} />
-        <span>{parentCount} parent node{parentCount !== 1 ? "s" : ""} connected</span>
+        <span className="hidden sm:inline">{parentCount} parent node{parentCount !== 1 ? "s" : ""} connected</span>
+        <span
+          className="sm:hidden absolute -top-1.5 -right-1.5 min-w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center"
+          style={{ backgroundColor: "var(--accent)", color: "#fff" }}
+        >
+          {parentCount}
+        </span>
       </button>
 
       {panelOpen && (

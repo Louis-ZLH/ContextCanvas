@@ -6,7 +6,7 @@ import {
   MiniMap,
   Panel,
 } from "@xyflow/react";
-import { MessageSquarePlus, FileUp } from "lucide-react";
+import { MessageSquarePlus, FileUp, ArrowDownUp, ArrowLeftRight } from "lucide-react";
 import type { ThemeName } from "../../feature/user/userSlice";
 
 interface CanvasControlsProps {
@@ -53,16 +53,18 @@ export const CanvasControls = memo(function CanvasControls({ onLayout, onAddNode
       </svg>
 
       <Panel position="top-left">
-        <div className="flex gap-2">
+        <div className="flex gap-1 sm:gap-2">
           {/* 布局按钮 */}
-          <button onClick={() => onLayout("TB")} className={btnClass}>
-            Vertical
+          <button onClick={() => onLayout("TB")} className={btnClass} title="Vertical layout">
+            <ArrowDownUp size={14} className="sm:hidden" />
+            <span className="hidden sm:inline">Vertical</span>
           </button>
-          <button onClick={() => onLayout("LR")} className={btnClass}>
-            Horizontal
+          <button onClick={() => onLayout("LR")} className={btnClass} title="Horizontal layout">
+            <ArrowLeftRight size={14} className="sm:hidden" />
+            <span className="hidden sm:inline">Horizontal</span>
           </button>
 
-          <div className="w-px bg-main mx-1" />
+          <div className="w-px bg-main mx-0.5 sm:mx-1" />
 
           {/* 添加 Chat 节点：可拖拽 + 可点击 */}
           <button
@@ -73,7 +75,7 @@ export const CanvasControls = memo(function CanvasControls({ onLayout, onAddNode
             title="Drag to canvas to place, or click to create at center"
           >
             <MessageSquarePlus size={14} />
-            Chat
+            <span className="hidden sm:inline">Chat</span>
           </button>
 
           {/* 上传文件按钮 */}
@@ -95,7 +97,7 @@ export const CanvasControls = memo(function CanvasControls({ onLayout, onAddNode
             title="Upload file and create resource node"
           >
             <FileUp size={14} />
-            Upload
+            <span className="hidden sm:inline">Upload</span>
           </button>
         </div>
       </Panel>
@@ -109,6 +111,7 @@ export const CanvasControls = memo(function CanvasControls({ onLayout, onAddNode
       <Controls />
       <MiniMap
         position="top-right"
+        className="scale-50 sm:scale-100 origin-top-right"
         // Dynamic mask color based on theme
         maskColor={
           theme === "dark"

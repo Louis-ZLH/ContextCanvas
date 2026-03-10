@@ -150,8 +150,8 @@ function ChatInput({
         backgroundColor: "var(--node-bg)",
         ...(isMaximized && isBottom
           ? {
-              left: "max(5rem, calc((100% - 700px) / 2))",
-              right: "max(5rem, calc((100% - 700px) / 2))",
+              left: "max(1rem, calc((100% - 700px) / 2))",
+              right: "max(1rem, calc((100% - 700px) / 2))",
             }
           : {}),
         ...(!isBottom

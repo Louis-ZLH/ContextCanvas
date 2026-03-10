@@ -73,12 +73,12 @@ export function LandingHeader() {
           ))}
         </div>
 
-        <div className="flex items-center gap-4 text-sm" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm whitespace-nowrap" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
           <a
             href="https://github.com/Louis-ZLH/ContextGraph"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-stone-400 hover:text-stone-800 transition-colors duration-300"
+            className="hidden sm:block text-stone-400 hover:text-stone-800 transition-colors duration-300"
             aria-label="GitHub"
           >
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 32 32">
@@ -87,13 +87,13 @@ export function LandingHeader() {
           </a>
           <button
             onClick={() => navigate("/login")}
-            className="cursor-pointer px-4 py-2 text-stone-600 font-medium hover:text-orange-600 transition-colors duration-300"
+            className="cursor-pointer px-3 sm:px-4 py-2 text-stone-600 font-medium hover:text-orange-600 transition-colors duration-300"
           >
             Sign in
           </button>
           <button
             onClick={() => navigate("/canvas")}
-            className="cursor-pointer px-5 py-2 bg-orange-500 text-white rounded-full font-semibold hover:bg-orange-600 active:scale-95 transition-all duration-300 shadow-sm hover:shadow-md"
+            className="cursor-pointer px-3 sm:px-5 py-2 bg-orange-500 text-white rounded-full font-semibold hover:bg-orange-600 active:scale-95 transition-all duration-300 shadow-sm hover:shadow-md"
           >
             Get Started &rarr;
           </button>

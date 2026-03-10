@@ -18,8 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Canvas } from "../../service/type";
 import { SidebarCanvasItem } from "./SidebarCanvasItem";
 
-export function Sidebar({ user }: { user: User | null }) {
-  const [isOpen, setIsOpen] = useState(() => window.matchMedia("(min-width: 1024px)").matches);
+export function Sidebar({ user, isOpen, setIsOpen }: { user: User | null; isOpen: boolean; setIsOpen: (v: boolean) => void }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -27,7 +26,7 @@ export function Sidebar({ user }: { user: User | null }) {
     const handler = (e: MediaQueryListEvent) => setIsOpen(e.matches);
     mql.addEventListener("change", handler);
     return () => mql.removeEventListener("change", handler);
-  }, []);
+  }, [setIsOpen]);
   const theme = useSelector(
     (state: { user: { theme: ThemeName } }) => state.user.theme
   );
@@ -36,10 +35,18 @@ export function Sidebar({ user }: { user: User | null }) {
   const canvasList = data?.data?.canvasList as Canvas[] | undefined;
 
   return (
+    <>
+    {/* Mobile backdrop */}
+    {isOpen && (
+      <div
+        className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+        onClick={() => setIsOpen(false)}
+      />
+    )}
     <aside
       className={`${
-        isOpen ? "w-64" : "w-16"
-      } relative flex flex-col border-r border-main bg-sidebar z-20 transition-[width] duration-100 ease-in-out overflow-hidden whitespace-nowrap`}
+        isOpen ? "w-64 z-40 lg:z-20 fixed inset-y-0 left-0 lg:relative lg:inset-auto" : "hidden lg:flex w-16 z-20 relative"
+      } flex flex-col border-r border-main bg-sidebar transition-[width] duration-100 ease-in-out overflow-hidden whitespace-nowrap`}
     >
       {/* Collapsed State: Only Show Open Button and Avatar */}
       <div
@@ -207,5 +214,6 @@ export function Sidebar({ user }: { user: User | null }) {
         user={user}
       />
     </aside>
+    </>
   );
 }
