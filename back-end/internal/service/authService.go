@@ -204,7 +204,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 	if err != nil {
 		return "", "", err
 	}
-	if sessionCount >= 3 {
+	if sessionCount >= 25 {
 		return "", "", apperr.Forbidden("Maximum concurrent sessions reached, please logout from other devices first")
 	}
 
