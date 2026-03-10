@@ -2,7 +2,8 @@ FROM python:3.12-slim
 
 # LibreOffice headless for PPTX → PDF conversion
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libreoffice-core libreoffice-impress && \
+    apt-get install -y --no-install-recommends libreoffice-core libreoffice-impress \
+    libcairo2 libcairo2-dev libffi-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

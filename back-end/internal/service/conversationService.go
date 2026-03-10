@@ -789,6 +789,8 @@ func (s *ConversationService) getResourceNodeContent(ctx context.Context, fileID
 	switch {
 	case isOriginalText(ct):
 		return s.getOriginalTextContent(ctx, file)
+	case ct == "image/svg+xml":
+		return s.getConvertedContent(ctx, file, eventCh)
 	case isOriginalImage(ct):
 		return s.getOriginalImageContent(ctx, file)
 	default:

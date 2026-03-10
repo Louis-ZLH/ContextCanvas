@@ -421,10 +421,11 @@ func countPPTXSlides(r io.ReaderAt, size int64) (int, error) {
 	return count, nil
 }
 
-// needsPreprocessing 判断文件是否需要异步预处理（PDF、DOCX、XLSX、PPTX）
+// needsPreprocessing 判断文件是否需要异步预处理（PDF、DOCX、XLSX、PPTX、SVG）
 func needsPreprocessing(contentType string) bool {
 	ct := strings.ToLower(contentType)
 	return ct == "application/pdf" ||
+		ct == "image/svg+xml" ||
 		isDocxContentType(ct) ||
 		isXlsxContentType(ct) ||
 		isPPTContentType(ct)

@@ -252,11 +252,26 @@ async def _generate_summary(text: str, minio_path: str) -> None:
 
 # ── Router ──
 
+def _convert_svg(file_bytes: bytes) -> tuple[str | None, list[tuple[str, bytes]] | None]:
+    """Convert SVG to a single JPEG page image via cairosvg."""
+    import cairosvg
+
+    png_bytes = cairosvg.svg2png(
+        bytestring=file_bytes,
+        output_width=1568,
+        background_color="white",
+    )
+
+    jpeg_bytes = _compress_image(png_bytes)
+    return None, [("page_1.jpg", jpeg_bytes)]
+
+
 _CONVERTERS = {
     "application/pdf": _convert_pdf,
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": _convert_docx,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": _convert_xlsx,
     "application/vnd.openxmlformats-officedocument.presentationml.presentation": _convert_pptx,
+    "image/svg+xml": _convert_svg,
 }
 
 
